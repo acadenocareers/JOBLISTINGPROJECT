@@ -1,38 +1,29 @@
 import os
-import random
 import requests
 import smtplib
+import random
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+from dotenv import load_dotenv
 
-print("🔹 Script started")
+load_dotenv()
 
+# ========== CONFIG ==========
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO = os.getenv("EMAIL_TO")
-
+EMAIL_TO = os.getenv("EMAIL_TO").split(",")
 RAPID_API_KEY = os.getenv("RAPID_API_KEY")
-
-print("🔹 ENV CHECK:")
-print("EMAIL_USER:", EMAIL_USER)
-print("EMAIL_TO:", EMAIL_TO)
-print("API KEY FOUND:", bool(RAPID_API_KEY))
-
-if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
-    raise Exception("❌ Missing email configuration in GitHub Secrets")
-
-EMAIL_TO = EMAIL_TO.split(",")
 
 QUOTES = [
     "Success is built one application at a time.",
     "Your future is created by what you do today.",
     "Great careers begin with brave applications.",
-    "Opportunities don’t happen, you create them."
+    "Opportunities don’t happen, you create them.",
+    "Small steps today lead to big success tomorrow."
 ]
 
-# ---------------- FETCH JOBS ----------------
-
+# ========== JOB FETCH ==========
 def fetch_jobs():
     jobs = []
 
@@ -42,12 +33,16 @@ def fetch_jobs():
         "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
     }
 
-    params = {"query": "IT jobs India", "page": "1", "num_pages": "2"}
+    params = {
+        "query": "software developer India",
+        "page": "1",
+        "num_pages": "2"
+    }
 
-    r = requests.get(url, headers=headers, params=params, timeout=15)
-    data = r.json()
+    response = requests.get(url, headers=headers, params=params, timeout=20)
+    data = response.json()
 
-    print(f"🔹 Jobs fetched: {len(data.get('data', []))}")
+    print("Jobs received:", len(data.get("data", [])))
 
     for job in data.get("data", []):
         jobs.append({
@@ -58,43 +53,45 @@ def fetch_jobs():
 
     return jobs[:15]
 
-# ---------------- SEND EMAIL ----------------
-
+# ========== EMAIL ==========
 def send_email(jobs):
-    print("🔹 Sending email...")
-
     quote = random.choice(QUOTES)
     subject = f"🎯 Job Updates — {datetime.now().strftime('%d %b %Y')}"
 
     html = f"<h2>{quote}</h2><hr>"
 
-    if not jobs:
-        html += "<p><b>No jobs found today.</b></p>"
-
     for job in jobs:
         html += f"""
-        <div>
+        <p>
         <b>{job['title']}</b><br>
         {job['company']}<br>
-        <a href="{job['link']}">Apply</a>
-        </div><br>
+        <a href="{job['link']}">Apply Now</a>
+        </p>
         """
 
-    msg = MIMEMultipart()
-    msg["From"] = EMAIL_USER
-    msg["To"] = ", ".join(EMAIL_TO)
-    msg["Subject"] = subject
-    msg.attach(MIMEText(html, "html"))
+    for email in EMAIL_TO:
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_USER
+        msg["To"] = email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(html, "html"))
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login(EMAIL_USER, EMAIL_PASS)
-        server.send_message(msg)
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.send_message(msg)
 
-    print("✅ Email sent")
+    print("Emails sent successfully.")
 
-# ---------------- MAIN ----------------
+# ========== MAIN ==========
+if __name__ == "__main__":
+    jobs = fetch_jobs()
 
-jobs = fetch_jobs()
-send_email(jobs)
-print("🎉 Script completed")
+    if jobs:
+        send_email(jobs)
+    else:
+        send_email([{
+            "title": "System Notice",
+            "company": "No jobs found today",
+            "link": "https://www.google.com"
+        }])
