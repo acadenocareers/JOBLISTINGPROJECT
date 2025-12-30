@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 import os
+from urllib.parse import urljoin
 
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
@@ -28,9 +29,9 @@ def get_infopark_jobs():
     soup = fetch("https://infopark.in/companies/job-search")
     jobs = []
 
-    for a in soup.select("a[href*='/job/']"):
-        title = clean(a.text)
-        link = "https://infopark.in" + a["href"]
+    for card in soup.select("a[href*='/job/']"):
+        title = clean(card.text)
+        link = urljoin("https://infopark.in", card["href"])
         if len(title) > 8:
             jobs.append(("Infopark", title, link))
 
@@ -40,9 +41,9 @@ def get_technopark_jobs():
     soup = fetch("https://technopark.in/job-search")
     jobs = []
 
-    for a in soup.select("a[href*='/job/']"):
-        title = clean(a.text)
-        link = "https://technopark.in" + a["href"]
+    for card in soup.select("a[href*='/job/']"):
+        title = clean(card.text)
+        link = urljoin("https://technopark.in", card["href"])
         if len(title) > 8:
             jobs.append(("Technopark", title, link))
 
@@ -52,12 +53,13 @@ def get_cyberpark_jobs():
     soup = fetch("https://www.ulcyberpark.com/jobs")
     jobs = []
 
-    for a in soup.select("a"):
-        text = clean(a.text)
-        href = a.get("href", "")
-        if "job" in text.lower() and href:
-            link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
-            jobs.append(("Cyberpark", text, link))
+    for card in soup.select("a[href]"):
+        title = clean(card.text)
+        href = card["href"]
+
+        if "job" in title.lower() and len(title) > 8:
+            link = urljoin("https://www.ulcyberpark.com", href)
+            jobs.append(("Cyberpark", title, link))
 
     return jobs
 
@@ -66,12 +68,12 @@ def get_cyberpark_jobs():
 def send_email(jobs):
     subject = f"Kerala IT Job Updates — {datetime.now().strftime('%d %b %Y')}"
     
-    body = "Today's verified IT job openings:\n\n"
+    body = "🎯 Today's Verified Kerala IT Openings\n\n"
 
     if not jobs:
         body += "⚠️ No jobs scraped today. Try again tomorrow."
     else:
-        for company, title, link in jobs[:40]:
+        for company, title, link in jobs[:50]:
             body += f"🏢 {company}\n📌 {title}\n🔗 {link}\n\n"
 
     msg = MIMEMultipart()
@@ -85,7 +87,7 @@ def send_email(jobs):
         server.login(EMAIL_USER, EMAIL_PASS)
         server.send_message(msg)
 
-    print("📧 Email sent:", len(jobs), "jobs")
+    print("📧 Email sent with", len(jobs), "jobs.")
 
 # ---------------- Main ----------------
 
