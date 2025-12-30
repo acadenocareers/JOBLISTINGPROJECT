@@ -1,126 +1,19 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
-
-import time
 import smtplib
-import random
-import urllib.parse
-import pandas as pd
-from bs4 import BeautifulSoup
-from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
-# ========== QUOTES ==========
-QUOTES = [
-    "Success is built one application at a time.",
-    "Your future is created by what you do today.",
-    "Great careers begin with brave applications.",
-    "Opportunities don’t happen, you create them.",
-    "Small steps today lead to big success tomorrow."
-]
-
-# ========== EMAIL CONFIG ==========
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO = os.getenv("EMAIL_TO", "").split(",")
-STUDENT_NAMES = os.getenv("STUDENT_NAMES", "").split(",")
+EMAIL_TO = os.getenv("EMAIL_TO")
 
-print("\n========= ENV CHECK =========")
 print("EMAIL_USER:", EMAIL_USER)
-print("EMAIL_PASS length:", len(EMAIL_PASS) if EMAIL_PASS else None)
 print("EMAIL_TO:", EMAIL_TO)
-print("============================\n")
 
-# ========== SCRAPER SETUP ==========
-options = Options()
-options.add_argument("--headless")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
+msg = "Subject: Test Mail from GitHub Action\n\nThis is a test email."
 
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+server = smtplib.SMTP("smtp.gmail.com", 587)
+server.starttls()
+server.login(EMAIL_USER, EMAIL_PASS)
+server.sendmail(EMAIL_USER, EMAIL_TO, msg)
+server.quit()
 
-# ========== SCRAPE JOBS ==========
-def scrape_jobs():
-    print("Starting job scraping...")
-    jobs = []
-    driver.get("https://www.indeed.com/jobs?q=python&l=India")
-    time.sleep(4)
-
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-
-    for card in soup.select(".result"):
-        title = card.select_one("h2")
-        company = card.select_one(".companyName")
-        link = card.select_one("a")
-
-        if title and company and link:
-            jobs.append({
-                "title": title.text.strip(),
-                "company": company.text.strip(),
-                "link": "https://www.indeed.com" + link.get("href")
-            })
-
-    print("Jobs scraped:", len(jobs))
-    return jobs
-
-# ========== EMAIL SENDER ==========
-def send_email(jobs):
-    quote = random.choice(QUOTES)
-    subject = f"🎯 Job Updates — {datetime.now().strftime('%d %b %Y')}"
-
-    for i, email in enumerate(EMAIL_TO):
-        name = STUDENT_NAMES[i] if i < len(STUDENT_NAMES) else "Student"
-        print(f"\nPreparing email for {name} → {email}")
-
-        html = f"""
-        <h2>Hello {name},</h2>
-        <p><b>{quote}</b></p>
-        <hr>
-        """
-
-        for job in jobs:
-            html += f"""
-            <div>
-                <b>{job['title']}</b><br>
-                {job['company']}<br>
-                <a href="{job['link']}">Apply</a>
-            </div>
-            """
-
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_USER
-        msg["To"] = email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(html, "html"))
-
-        try:
-            server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
-            server.set_debuglevel(1)   # 🔥 Forces SMTP debug output
-            server.starttls()
-            print("Logging in to Gmail...")
-            server.login(EMAIL_USER, EMAIL_PASS)
-            server.send_message(msg)
-            server.quit()
-            print("MAIL SENT SUCCESSFULLY ✔")
-
-        except Exception as e:
-            print("\nSMTP FAILURE ❌")
-            print(type(e).__name__, e)
-            raise
-
-# ========== MAIN ==========
-if __name__ == "__main__":
-    jobs = scrape_jobs()
-
-    if jobs:
-        send_email(jobs)
-    else:
-        print("No jobs scraped.")
-
-    driver.quit()
+print("MAIL SENT")
