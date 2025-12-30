@@ -1,114 +1,116 @@
 import requests
+from bs4 import BeautifulSoup
 import smtplib
-import os
-from datetime import datetime
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+import os
 
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO")
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0"
+}
 
-# ---------------------------
-# SAFE JSON FETCH
-# ---------------------------
-def safe_json(url):
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=20)
-        r.raise_for_status()
-        return r.json()
-    except Exception as e:
-        print(f"⚠️ Failed to load {url} -> {e}")
-        return None
+# ---------------- SCRAPERS ----------------
 
-# ---------------------------
-# TECHNOPARK
-# ---------------------------
-def get_technopark_jobs():
-    url = "https://www.technopark.org/api/jobs"
-    data = safe_json(url)
-    jobs = []
-
-    if not isinstance(data, list):
-        return jobs
-
-    for j in data:
-        title = j.get("title", "Unknown Role")
-        company = j.get("company", "Unknown Company")
-        link = j.get("url", "")
-        jobs.append(f"{title} | {company} | Technopark\n{link}")
-
-    return jobs
-
-# ---------------------------
-# INFOPARK
-# ---------------------------
 def get_infopark_jobs():
-    url = "https://infopark.in/api/job/list"
-    data = safe_json(url)
+    url = "https://infopark.in/companies/job-search"
+    r = requests.get(url, headers=HEADERS, timeout=15)
+    soup = BeautifulSoup(r.text, "html.parser")
+
     jobs = []
+    for card in soup.select(".company-list .company-list-item"):
+        title = card.select_one("h3")
+        company = card.select_one(".company-title")
+        link = card.select_one("a")
 
-    if not data or "jobs" not in data:
-        return jobs
-
-    for j in data["jobs"]:
-        title = j.get("title", "Unknown Role")
-        company = j.get("company", "Unknown Company")
-        link = j.get("link", "")
-        jobs.append(f"{title} | {company} | Infopark\n{link}")
-
+        if title and company and link:
+            jobs.append({
+                "title": title.text.strip(),
+                "company": company.text.strip(),
+                "link": "https://infopark.in" + link["href"]
+            })
     return jobs
 
-# ---------------------------
-# CYBERPARK
-# ---------------------------
+
+def get_technopark_jobs():
+    url = "https://technopark.in/job-search"
+    r = requests.get(url, headers=HEADERS, timeout=15)
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    jobs = []
+    for card in soup.select(".job-listing"):
+        title = card.select_one("h3")
+        company = card.select_one(".company")
+        link = card.select_one("a")
+
+        if title and company and link:
+            jobs.append({
+                "title": title.text.strip(),
+                "company": company.text.strip(),
+                "link": "https://technopark.in" + link["href"]
+            })
+    return jobs
+
+
 def get_cyberpark_jobs():
-    url = "https://www.cyberparkkerala.org/api/jobs"
-    data = safe_json(url)
+    url = "https://www.ulcyberpark.com/jobs"
+    r = requests.get(url, headers=HEADERS, timeout=15)
+    soup = BeautifulSoup(r.text, "html.parser")
+
     jobs = []
+    for card in soup.select(".job-list"):
+        title = card.select_one("h4")
+        company = card.select_one("p")
+        link = card.select_one("a")
 
-    if not isinstance(data, list):
-        return jobs
-
-    for j in data:
-        title = j.get("title", "Unknown Role")
-        company = j.get("company", "Unknown Company")
-        link = j.get("apply_link", "")
-        jobs.append(f"{title} | {company} | Cyberpark\n{link}")
-
+        if title and company and link:
+            jobs.append({
+                "title": title.text.strip(),
+                "company": company.text.strip(),
+                "link": link["href"]
+            })
     return jobs
 
-# ---------------------------
-# EMAIL
-# ---------------------------
+
+# ---------------- MAILER ----------------
+
 def send_email(jobs):
     subject = f"Kerala IT Job Updates — {datetime.now().strftime('%d %b %Y')}"
-    body = "\n\n".join(jobs) if jobs else "No jobs found today."
+    body = ""
 
-    msg = MIMEText(body)
+    if not jobs:
+        body = "No jobs found today."
+    else:
+        for j in jobs:
+            body += f"{j['title']} | {j['company']}\n{j['link']}\n\n"
+
+    msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
     msg["To"] = EMAIL_TO
     msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
 
     with smtplib.SMTP("smtp.gmail.com", 587) as server:
         server.starttls()
         server.login(EMAIL_USER, EMAIL_PASS)
         server.send_message(msg)
 
-    print("📧 Mail sent")
+    print("Mail sent successfully.")
 
-# ---------------------------
-# MAIN
-# ---------------------------
+
+# ---------------- MAIN ----------------
+
 if __name__ == "__main__":
-    print("🚀 Collecting Kerala IT jobs...")
+    print("Collecting Kerala IT jobs...")
 
-    all_jobs = []
-    all_jobs.extend(get_technopark_jobs())
-    all_jobs.extend(get_infopark_jobs())
-    all_jobs.extend(get_cyberpark_jobs())
+    jobs = []
+    jobs += get_infopark_jobs()
+    jobs += get_technopark_jobs()
+    jobs += get_cyberpark_jobs()
 
-    print(f"✅ Total jobs collected: {len(all_jobs)}")
-
-    send_email(all_jobs)
+    print(f"Total jobs found: {len(jobs)}")
+    send_email(jobs)
