@@ -1,80 +1,52 @@
-import requests
+import time, os
+from datetime import datetime
 from bs4 import BeautifulSoup
-import smtplib
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
-import os
-from urllib.parse import urljoin
+import smtplib
 
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO")
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+# ---------- Selenium Setup ----------
+def start_browser():
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    return webdriver.Chrome(options=options)
 
-# ---------------- Utilities ----------------
+# ---------- Scrapers ----------
+def scrape_site(driver, url, company):
+    driver.get(url)
+    time.sleep(5)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
 
-def fetch(url):
-    r = requests.get(url, headers=HEADERS, timeout=30)
-    r.raise_for_status()
-    return BeautifulSoup(r.text, "html.parser")
-
-def clean(txt):
-    return " ".join(txt.split())
-
-# ---------------- Scrapers ----------------
-
-def get_infopark_jobs():
-    soup = fetch("https://infopark.in/companies/job-search")
     jobs = []
+    for a in soup.find_all("a"):
+        title = " ".join(a.text.split())
+        link = a.get("href", "")
 
-    for card in soup.select("a[href*='/job/']"):
-        title = clean(card.text)
-        link = urljoin("https://infopark.in", card["href"])
-        if len(title) > 8:
-            jobs.append(("Infopark", title, link))
+        if len(title) > 10 and "job" in link.lower():
+            if not link.startswith("http"):
+                link = url.split("/")[0] + "//" + url.split("/")[2] + link
+            jobs.append((company, title, link))
 
     return jobs
 
-def get_technopark_jobs():
-    soup = fetch("https://technopark.in/job-search")
-    jobs = []
-
-    for card in soup.select("a[href*='/job/']"):
-        title = clean(card.text)
-        link = urljoin("https://technopark.in", card["href"])
-        if len(title) > 8:
-            jobs.append(("Technopark", title, link))
-
-    return jobs
-
-def get_cyberpark_jobs():
-    soup = fetch("https://www.ulcyberpark.com/jobs")
-    jobs = []
-
-    for card in soup.select("a[href]"):
-        title = clean(card.text)
-        href = card["href"]
-
-        if "job" in title.lower() and len(title) > 8:
-            link = urljoin("https://www.ulcyberpark.com", href)
-            jobs.append(("Cyberpark", title, link))
-
-    return jobs
-
-# ---------------- Mailer ----------------
-
+# ---------- Mail ----------
 def send_email(jobs):
     subject = f"Kerala IT Job Updates — {datetime.now().strftime('%d %b %Y')}"
-    
-    body = "🎯 Today's Verified Kerala IT Openings\n\n"
 
+    body = "🎯 Today's Verified Kerala IT Openings\n\n"
     if not jobs:
         body += "⚠️ No jobs scraped today. Try again tomorrow."
     else:
-        for company, title, link in jobs[:50]:
-            body += f"🏢 {company}\n📌 {title}\n🔗 {link}\n\n"
+        for c, t, l in jobs[:50]:
+            body += f"🏢 {c}\n📌 {t}\n🔗 {l}\n\n"
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
@@ -87,17 +59,18 @@ def send_email(jobs):
         server.login(EMAIL_USER, EMAIL_PASS)
         server.send_message(msg)
 
-    print("📧 Email sent with", len(jobs), "jobs.")
-
-# ---------------- Main ----------------
-
+# ---------- Main ----------
 if __name__ == "__main__":
-    print("🚀 Collecting Kerala IT jobs...")
+    print("🚀 Scraping live Kerala IT job sites...")
 
+    driver = start_browser()
     jobs = []
-    jobs += get_infopark_jobs()
-    jobs += get_technopark_jobs()
-    jobs += get_cyberpark_jobs()
 
-    print("✅ Total jobs scraped:", len(jobs))
+    jobs += scrape_site(driver, "https://infopark.in/companies/job-search", "Infopark")
+    jobs += scrape_site(driver, "https://technopark.in/job-search", "Technopark")
+    jobs += scrape_site(driver, "https://www.ulcyberpark.com/jobs", "Cyberpark")
+
+    driver.quit()
+
+    print("✅ Jobs collected:", len(jobs))
     send_email(jobs)
