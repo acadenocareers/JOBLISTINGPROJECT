@@ -1,11 +1,10 @@
 import requests
+from bs4 import BeautifulSoup
 import smtplib
-import os
-from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
-# ===================== ENV =====================
+from datetime import datetime
+import os
 
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
@@ -13,37 +12,67 @@ EMAIL_TO   = os.getenv("EMAIL_TO")
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-# ===================== CYBERPARK SCRAPER =====================
+# ---------------- Utilities ----------------
 
-def get_cyberpark_jobs():
-    url = "https://www.ulcyberpark.com/wp-json/wp/v2/job_listing?per_page=100"
+def fetch(url):
     r = requests.get(url, headers=HEADERS, timeout=30)
-    data = r.json()
+    r.raise_for_status()
+    return BeautifulSoup(r.text, "html.parser")
 
+def clean(txt):
+    return " ".join(txt.split())
+
+# ---------------- Scrapers ----------------
+
+def get_infopark_jobs():
+    soup = fetch("https://infopark.in/companies/job-search")
     jobs = []
-    for item in data:
-        title = item["title"]["rendered"]
-        link  = item["link"]
 
-        jobs.append({
-            "title": title,
-            "company": "Cyberpark",
-            "link": link
-        })
+    for a in soup.select("a[href*='/job/']"):
+        title = clean(a.text)
+        link = "https://infopark.in" + a["href"]
+        if len(title) > 8:
+            jobs.append(("Infopark", title, link))
 
     return jobs
 
-# ===================== MAIL =====================
+def get_technopark_jobs():
+    soup = fetch("https://technopark.in/job-search")
+    jobs = []
+
+    for a in soup.select("a[href*='/job/']"):
+        title = clean(a.text)
+        link = "https://technopark.in" + a["href"]
+        if len(title) > 8:
+            jobs.append(("Technopark", title, link))
+
+    return jobs
+
+def get_cyberpark_jobs():
+    soup = fetch("https://www.ulcyberpark.com/jobs")
+    jobs = []
+
+    for a in soup.select("a"):
+        text = clean(a.text)
+        href = a.get("href", "")
+        if "job" in text.lower() and href:
+            link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
+            jobs.append(("Cyberpark", text, link))
+
+    return jobs
+
+# ---------------- Mailer ----------------
 
 def send_email(jobs):
     subject = f"Kerala IT Job Updates — {datetime.now().strftime('%d %b %Y')}"
+    
+    body = "Today's verified IT job openings:\n\n"
 
     if not jobs:
-        body = "No jobs found today."
+        body += "⚠️ No jobs scraped today. Try again tomorrow."
     else:
-        body = ""
-        for j in jobs:
-            body += f"{j['title']}\n{j['company']}\n{j['link']}\n\n"
+        for company, title, link in jobs[:40]:
+            body += f"🏢 {company}\n📌 {title}\n🔗 {link}\n\n"
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
@@ -56,9 +85,17 @@ def send_email(jobs):
         server.login(EMAIL_USER, EMAIL_PASS)
         server.send_message(msg)
 
-# ===================== MAIN =====================
+    print("📧 Email sent:", len(jobs), "jobs")
+
+# ---------------- Main ----------------
 
 if __name__ == "__main__":
-    jobs = get_cyberpark_jobs()
-    print("Jobs found:", len(jobs))
+    print("🚀 Collecting Kerala IT jobs...")
+
+    jobs = []
+    jobs += get_infopark_jobs()
+    jobs += get_technopark_jobs()
+    jobs += get_cyberpark_jobs()
+
+    print("✅ Total jobs scraped:", len(jobs))
     send_email(jobs)
