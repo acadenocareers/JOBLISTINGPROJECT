@@ -1,80 +1,51 @@
 import requests
-from bs4 import BeautifulSoup
 import smtplib
 import os
 from datetime import datetime
 from email.mime.text import MIMEText
 
-# =========================
-# EMAIL CONFIG
-# =========================
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO")
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json"
+}
 
-# =========================
-# SCRAPERS
-# =========================
-def scrape_technopark():
-    url = "https://www.technopark.org/job-search"
-    res = requests.get(url, headers=HEADERS)
-    soup = BeautifulSoup(res.text, "html.parser")
-
+def get_technopark_jobs():
+    url = "https://www.technopark.org/api/jobs"
+    data = requests.get(url, headers=HEADERS).json()
     jobs = []
-    for job in soup.select(".job-listing"):
-        title = job.select_one("h3").text.strip()
-        company = job.select_one(".company").text.strip()
-        location = "Technopark, Trivandrum"
-        link = job.find("a")["href"]
 
-        jobs.append(f"{title} | {company} | {location}\n{link}")
+    for j in data:
+        jobs.append(f"{j['title']} | {j['company']} | Technopark\n{j['url']}")
 
     return jobs
 
-def scrape_infopark():
-    url = "https://infopark.in/companies/job"
-    res = requests.get(url, headers=HEADERS)
-    soup = BeautifulSoup(res.text, "html.parser")
-
+def get_infopark_jobs():
+    url = "https://infopark.in/api/job/list"
+    data = requests.get(url, headers=HEADERS).json()
     jobs = []
-    for job in soup.select(".job-list"):
-        title = job.select_one("h4").text.strip()
-        company = job.select_one(".company-name").text.strip()
-        location = "Infopark, Kochi"
-        link = "https://infopark.in" + job.find("a")["href"]
 
-        jobs.append(f"{title} | {company} | {location}\n{link}")
+    for j in data['jobs']:
+        jobs.append(f"{j['title']} | {j['company']} | Infopark\n{j['link']}")
 
     return jobs
 
-def scrape_cyberpark():
-    url = "https://www.cyberparkkerala.org/jobs"
-    res = requests.get(url, headers=HEADERS)
-    soup = BeautifulSoup(res.text, "html.parser")
-
+def get_cyberpark_jobs():
+    url = "https://www.cyberparkkerala.org/api/jobs"
+    data = requests.get(url, headers=HEADERS).json()
     jobs = []
-    for job in soup.select(".job-block"):
-        title = job.select_one("h5").text.strip()
-        company = job.select_one(".company-name").text.strip()
-        location = "Cyberpark, Kozhikode"
-        link = job.find("a")["href"]
 
-        jobs.append(f"{title} | {company} | {location}\n{link}")
+    for j in data:
+        jobs.append(f"{j['title']} | {j['company']} | Cyberpark\n{j['apply_link']}")
 
     return jobs
 
-# =========================
-# EMAIL
-# =========================
-def send_email(all_jobs):
+def send_email(jobs):
     subject = f"Kerala IT Job Updates — {datetime.now().strftime('%d %b %Y')}"
-
-    if not all_jobs:
-        body = "No jobs found today."
-    else:
-        body = "\n\n".join(all_jobs)
+    body = "\n\n".join(jobs) if jobs else "No jobs found today."
 
     msg = MIMEText(body)
     msg["From"] = EMAIL_USER
@@ -88,16 +59,13 @@ def send_email(all_jobs):
 
     print("📧 Mail sent successfully")
 
-# =========================
-# MAIN
-# =========================
 if __name__ == "__main__":
-    print("🚀 Starting Kerala IT Job Scraper...")
+    print("🚀 Collecting Kerala IT jobs...")
 
     jobs = []
-    jobs += scrape_technopark()
-    jobs += scrape_infopark()
-    jobs += scrape_cyberpark()
+    jobs += get_technopark_jobs()
+    jobs += get_infopark_jobs()
+    jobs += get_cyberpark_jobs()
 
-    print(f"✅ Total jobs collected: {len(jobs)}")
+    print(f"✅ Total jobs found: {len(jobs)}")
     send_email(jobs)
