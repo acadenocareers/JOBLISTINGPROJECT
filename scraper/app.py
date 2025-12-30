@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import time
 import smtplib
 import random
@@ -25,15 +28,16 @@ QUOTES = [
 # ========== EMAIL CONFIG ==========
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO = os.getenv("EMAIL_TO").split(",")
-STUDENT_NAMES = os.getenv("STUDENT_NAMES").split(",")
-TRACKER_URL = os.getenv("TRACKER_URL")
+EMAIL_TO = os.getenv("EMAIL_TO", "").split(",")
+STUDENT_NAMES = os.getenv("STUDENT_NAMES", "").split(",")
+TRACKER_URL = os.getenv("TRACKER_URL", "")
 
 # ========== SCRAPER SETUP ==========
 options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
+
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 # ========== SCRAPE JOBS ==========
@@ -41,6 +45,7 @@ def scrape_jobs():
     jobs = []
     driver.get("https://www.indeed.com/jobs?q=python&l=India")
     time.sleep(3)
+
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
     for card in soup.select(".result"):
@@ -97,9 +102,11 @@ def send_email(jobs):
 # ========== MAIN ==========
 if __name__ == "__main__":
     jobs = scrape_jobs()
+
     df = pd.DataFrame(jobs)
     df.to_csv("jobs.csv", index=False)
 
     if jobs:
         send_email(jobs)
+
     driver.quit()
