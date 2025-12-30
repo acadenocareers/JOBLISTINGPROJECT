@@ -30,10 +30,12 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO = os.getenv("EMAIL_TO", "").split(",")
 STUDENT_NAMES = os.getenv("STUDENT_NAMES", "").split(",")
-TRACKER_URL = os.getenv("TRACKER_URL", "")
 
-print("Loaded EMAIL_USER:", EMAIL_USER)
-print("Loaded EMAIL_TO:", EMAIL_TO)
+print("\n========= ENV CHECK =========")
+print("EMAIL_USER:", EMAIL_USER)
+print("EMAIL_PASS length:", len(EMAIL_PASS) if EMAIL_PASS else None)
+print("EMAIL_TO:", EMAIL_TO)
+print("============================\n")
 
 # ========== SCRAPER SETUP ==========
 options = Options()
@@ -45,10 +47,10 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), opti
 
 # ========== SCRAPE JOBS ==========
 def scrape_jobs():
-    print("Scraping jobs...")
+    print("Starting job scraping...")
     jobs = []
     driver.get("https://www.indeed.com/jobs?q=python&l=India")
-    time.sleep(3)
+    time.sleep(4)
 
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
@@ -64,7 +66,7 @@ def scrape_jobs():
                 "link": "https://www.indeed.com" + link.get("href")
             })
 
-    print("Jobs found:", len(jobs))
+    print("Jobs scraped:", len(jobs))
     return jobs
 
 # ========== EMAIL SENDER ==========
@@ -74,7 +76,7 @@ def send_email(jobs):
 
     for i, email in enumerate(EMAIL_TO):
         name = STUDENT_NAMES[i] if i < len(STUDENT_NAMES) else "Student"
-        print(f"Preparing email for {name} -> {email}")
+        print(f"\nPreparing email for {name} → {email}")
 
         html = f"""
         <h2>Hello {name},</h2>
@@ -83,13 +85,11 @@ def send_email(jobs):
         """
 
         for job in jobs:
-            tracking = f"{TRACKER_URL}?name={name}&email={email}&job={urllib.parse.quote(job['title'])}&link={urllib.parse.quote(job['link'])}"
-
             html += f"""
-            <div style='margin-bottom:15px'>
+            <div>
                 <b>{job['title']}</b><br>
                 {job['company']}<br>
-                <a href="{tracking}" style='background:#6a00ff;color:white;padding:8px 12px;border-radius:6px;text-decoration:none'>Apply</a>
+                <a href="{job['link']}">Apply</a>
             </div>
             """
 
@@ -100,14 +100,19 @@ def send_email(jobs):
         msg.attach(MIMEText(html, "html"))
 
         try:
-            with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                server.starttls()
-                print("Logging in with:", EMAIL_USER)
-                server.login(EMAIL_USER, EMAIL_PASS)
-                server.send_message(msg)
-                print(f"Email sent successfully to {email}")
+            server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
+            server.set_debuglevel(1)   # 🔥 Forces SMTP debug output
+            server.starttls()
+            print("Logging in to Gmail...")
+            server.login(EMAIL_USER, EMAIL_PASS)
+            server.send_message(msg)
+            server.quit()
+            print("MAIL SENT SUCCESSFULLY ✔")
+
         except Exception as e:
-            print("EMAIL ERROR:", str(e))
+            print("\nSMTP FAILURE ❌")
+            print(type(e).__name__, e)
+            raise
 
 # ========== MAIN ==========
 if __name__ == "__main__":
