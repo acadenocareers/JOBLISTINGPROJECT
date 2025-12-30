@@ -6,17 +6,23 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
+print("🔹 Script started")
+
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO = os.getenv("EMAIL_TO").split(",")
+EMAIL_TO = os.getenv("EMAIL_TO")
 
 RAPID_API_KEY = os.getenv("RAPID_API_KEY")
 
-KEYWORDS = [
-    "python", "full stack", "data", "analyst", "science", "react", "frontend",
-    "backend", "developer", "software", "flask", "power bi", "tableau",
-    "digital marketing", "flutter", "web", "javascript", "html", "css"
-]
+print("🔹 ENV CHECK:")
+print("EMAIL_USER:", EMAIL_USER)
+print("EMAIL_TO:", EMAIL_TO)
+print("API KEY FOUND:", bool(RAPID_API_KEY))
+
+if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
+    raise Exception("❌ Missing email configuration in GitHub Secrets")
+
+EMAIL_TO = EMAIL_TO.split(",")
 
 QUOTES = [
     "Success is built one application at a time.",
@@ -25,11 +31,10 @@ QUOTES = [
     "Opportunities don’t happen, you create them."
 ]
 
-# -------------------- SCRAPER --------------------
+# ---------------- FETCH JOBS ----------------
 
 def fetch_jobs():
     jobs = []
-    seen = set()
 
     url = "https://jsearch.p.rapidapi.com/search"
     headers = {
@@ -37,49 +42,42 @@ def fetch_jobs():
         "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
     }
 
-    params = {
-        "query": "IT jobs in India",
-        "page": "1",
-        "num_pages": "3"
-    }
+    params = {"query": "IT jobs India", "page": "1", "num_pages": "2"}
 
-    response = requests.get(url, headers=headers, params=params, timeout=20)
-    data = response.json()
+    r = requests.get(url, headers=headers, params=params, timeout=15)
+    data = r.json()
+
+    print(f"🔹 Jobs fetched: {len(data.get('data', []))}")
 
     for job in data.get("data", []):
-        title = job["job_title"].lower()
+        jobs.append({
+            "title": job["job_title"],
+            "company": job["employer_name"],
+            "link": job["job_apply_link"]
+        })
 
-        if any(k in title for k in KEYWORDS):
-            key = (job["job_title"], job["employer_name"])
-            if key not in seen:
-                seen.add(key)
-                jobs.append({
-                    "title": job["job_title"],
-                    "company": job["employer_name"],
-                    "link": job["job_apply_link"]
-                })
+    return jobs[:15]
 
-    return jobs[:25]
-
-# -------------------- EMAIL --------------------
+# ---------------- SEND EMAIL ----------------
 
 def send_email(jobs):
+    print("🔹 Sending email...")
+
     quote = random.choice(QUOTES)
     subject = f"🎯 Job Updates — {datetime.now().strftime('%d %b %Y')}"
 
     html = f"<h2>{quote}</h2><hr>"
 
+    if not jobs:
+        html += "<p><b>No jobs found today.</b></p>"
+
     for job in jobs:
         html += f"""
-        <div style='margin-bottom:15px'>
-            <b>{job['title']}</b><br>
-            {job['company']}<br>
-            <a href="{job['link']}"
-               style='background:#6a00ff;color:white;padding:8px 12px;
-                      border-radius:6px;text-decoration:none'>
-               Apply Now
-            </a>
-        </div>
+        <div>
+        <b>{job['title']}</b><br>
+        {job['company']}<br>
+        <a href="{job['link']}">Apply</a>
+        </div><br>
         """
 
     msg = MIMEMultipart()
@@ -93,13 +91,10 @@ def send_email(jobs):
         server.login(EMAIL_USER, EMAIL_PASS)
         server.send_message(msg)
 
-    print("Email sent successfully.")
+    print("✅ Email sent")
 
-# -------------------- MAIN --------------------
+# ---------------- MAIN ----------------
 
-if __name__ == "__main__":
-    jobs = fetch_jobs()
-    if jobs:
-        send_email(jobs)
-    else:
-        print("No jobs returned from API.")
+jobs = fetch_jobs()
+send_email(jobs)
+print("🎉 Script completed")
