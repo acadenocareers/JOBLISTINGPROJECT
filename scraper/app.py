@@ -8,59 +8,71 @@ from email.mime.multipart import MIMEMultipart
 
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO   = os.getenv("EMAIL_TO","").split(",")
+EMAIL_TO = os.getenv("EMAIL_TO", "").split(",")
 RAPID_API_KEY = os.getenv("RAPID_API_KEY")
 
-print("DEBUG EMAIL_USER:", EMAIL_USER)
-print("DEBUG EMAIL_TO:", EMAIL_TO)
-print("DEBUG API KEY PRESENT:", bool(RAPID_API_KEY))
-
 KEYWORDS = [
-    "python","full stack","data science","data analyst","power bi","tableau",
-    "flask","digital marketing","flutter","frontend","react","html css"
+    "python", "full stack", "data science", "data analyst", "power bi", "tableau",
+    "flask", "digital marketing", "flutter", "frontend", "react", "html css"
 ]
 
 QUOTES = [
     "Success is built one application at a time.",
     "Your future is created by what you do today.",
-    "Great careers begin with brave applications."
+    "Great careers begin with brave applications.",
+    "Opportunities don’t happen, you create them."
 ]
 
+# ======================= FETCH JOBS =======================
 def fetch_jobs():
     jobs = []
-    for kw in KEYWORDS:
+
+    for keyword in KEYWORDS:
         url = "https://jsearch.p.rapidapi.com/search"
         headers = {
             "X-RapidAPI-Key": RAPID_API_KEY,
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
+
         params = {
-            "query": f"{kw} jobs in India",
+            "query": f"{keyword} jobs in India",
             "page": "1",
             "num_pages": "1",
-            "date_posted": "month",
-            "experience": "under_5_years"
+            "date_posted": "week"
         }
 
-        r = requests.get(url, headers=headers, params=params)
-        data = r.json()
-        print(f"DEBUG jobs for {kw}:", len(data.get("data", [])))
+        response = requests.get(url, headers=headers, params=params, timeout=20)
+        data = response.json()
 
-        for j in data.get("data", []):
+        for job in data.get("data", []):
             jobs.append({
-                "title": j["job_title"],
-                "company": j["employer_name"],
-                "link": j["job_apply_link"]
+                "title": job["job_title"],
+                "company": job["employer_name"],
+                "link": job["job_apply_link"]
             })
-    return jobs[:20]
 
+    return jobs[:25]
+
+# ======================= SEND EMAIL =======================
 def send_email(jobs):
     quote = random.choice(QUOTES)
     subject = f"🎯 Job Updates — {datetime.now().strftime('%d %b %Y')}"
+
     html = f"<h2>{quote}</h2><hr>"
 
-    for j in jobs:
-        html += f"<b>{j['title']}</b><br>{j['company']}<br><a href='{j['link']}'>Apply</a><br><br>"
+    if not jobs:
+        html += "<p><b>No matching jobs found today.</b></p>"
+    else:
+        for job in jobs:
+            html += f"""
+            <div style='margin-bottom:15px'>
+                <b>{job['title']}</b><br>
+                {job['company']}<br>
+                <a href="{job['link']}"
+                   style='background:#6a00ff;color:white;padding:8px 12px;
+                   border-radius:6px;text-decoration:none'>Apply Now</a>
+            </div>
+            """
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
@@ -68,20 +80,14 @@ def send_email(jobs):
     msg["Subject"] = subject
     msg.attach(MIMEText(html, "html"))
 
-    print("DEBUG connecting SMTP…")
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
-        server.set_debuglevel(1)
         server.starttls()
         server.login(EMAIL_USER, EMAIL_PASS)
         server.send_message(msg)
 
-    print("DEBUG mail sent")
+    print("Email sent successfully.")
 
+# ======================= MAIN =======================
 if __name__ == "__main__":
     jobs = fetch_jobs()
-    print("DEBUG total jobs:", len(jobs))
-
-    if jobs:
-        send_email(jobs)
-    else:
-        print("DEBUG no jobs, skipping email")
+    send_email(jobs)
