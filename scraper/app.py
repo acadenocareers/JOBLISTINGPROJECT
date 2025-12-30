@@ -1,19 +1,19 @@
 import os
+import requests
 import smtplib
-import time
 import random
-from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from bs4 import BeautifulSoup
-import requests
+from datetime import datetime
+from dotenv import load_dotenv
 
-# ========== EMAIL CONFIG ==========
+load_dotenv()
+
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO = os.getenv("EMAIL_TO").split(",")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 
-# ========== MOTIVATION QUOTES ==========
 QUOTES = [
     "Success is built one application at a time.",
     "Your future is created by what you do today.",
@@ -22,80 +22,69 @@ QUOTES = [
     "Small steps today lead to big success tomorrow."
 ]
 
-# ========== JOB SCRAPER ==========
-def scrape_jobs():
-    print("Starting job scraping...")
-    url = "https://www.indeed.com/jobs?q=python&l=India"
+# ===================== SCRAPER =====================
 
-    try:
-        response = requests.get(url, timeout=20)
-        soup = BeautifulSoup(response.text, "html.parser")
-    except:
-        return []
+def fetch_jobs():
+    url = "https://jsearch.p.rapidapi.com/search"
+
+    querystring = {
+        "query": "Python Developer in India",
+        "page": "1",
+        "num_pages": "1"
+    }
+
+    headers = {
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    data = response.json()
 
     jobs = []
-    for card in soup.select(".result")[:6]:
-        title = card.select_one("h2")
-        company = card.select_one(".companyName")
-        link = card.select_one("a")
+    for job in data.get("data", [])[:10]:
+        jobs.append({
+            "title": job["job_title"],
+            "company": job["employer_name"],
+            "link": job["job_apply_link"]
+        })
 
-        if title and company and link:
-            jobs.append({
-                "title": title.text.strip(),
-                "company": company.text.strip(),
-                "link": "https://www.indeed.com" + link["href"]
-            })
-
-    print("Jobs found:", len(jobs))
     return jobs
 
-# ========== EMAIL SENDER ==========
-def send_emails(jobs):
-    quote = random.choice(QUOTES)
-    subject = f"🎯 Job Updates — {datetime.now().strftime('%d %b %Y')}"
+# ===================== EMAIL =====================
 
-    for email in EMAIL_TO:
-        html = f"""
-        <h2>{quote}</h2>
+def send_email(jobs):
+    subject = f"🎯 Job Updates — {datetime.now().strftime('%d %b %Y')}"
+    quote = random.choice(QUOTES)
+
+    body = f"<h2>{quote}</h2><hr>"
+
+    for job in jobs:
+        body += f"""
+        <p>
+        <b>{job['title']}</b><br>
+        {job['company']}<br>
+        <a href="{job['link']}">Apply Now</a>
+        </p>
         <hr>
         """
 
-        for job in jobs:
-            html += f"""
-            <div style="margin-bottom:12px">
-                <b>{job['title']}</b><br>
-                {job['company']}<br>
-                <a href="{job['link']}">Apply Now</a>
-            </div>
-            """
+    msg = MIMEMultipart()
+    msg["From"] = EMAIL_USER
+    msg["To"] = ", ".join(EMAIL_TO)
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "html"))
 
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_USER
-        msg["To"] = email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(html, "html"))
-
-        server = smtplib.SMTP("smtp.gmail.com", 587)
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
         server.starttls()
         server.login(EMAIL_USER, EMAIL_PASS)
         server.send_message(msg)
-        server.quit()
 
-        print("Email sent to", email)
+    print("Mail sent successfully!")
 
-# ========== MAIN ==========
-def main():
-    jobs = scrape_jobs()
-
-    # Always send mail (even if scraping blocked)
-    if not jobs:
-        jobs = [{
-            "title": "⚠️ No jobs scraped today",
-            "company": "System Status",
-            "link": "https://www.indeed.com"
-        }]
-
-    send_emails(jobs)
+# ===================== MAIN =====================
 
 if __name__ == "__main__":
-    main()
+    jobs = fetch_jobs()
+    print(f"Jobs fetched: {len(jobs)}")
+    send_email(jobs)
