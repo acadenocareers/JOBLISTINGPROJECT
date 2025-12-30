@@ -32,6 +32,9 @@ EMAIL_TO = os.getenv("EMAIL_TO", "").split(",")
 STUDENT_NAMES = os.getenv("STUDENT_NAMES", "").split(",")
 TRACKER_URL = os.getenv("TRACKER_URL", "")
 
+print("Loaded EMAIL_USER:", EMAIL_USER)
+print("Loaded EMAIL_TO:", EMAIL_TO)
+
 # ========== SCRAPER SETUP ==========
 options = Options()
 options.add_argument("--headless")
@@ -42,6 +45,7 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), opti
 
 # ========== SCRAPE JOBS ==========
 def scrape_jobs():
+    print("Scraping jobs...")
     jobs = []
     driver.get("https://www.indeed.com/jobs?q=python&l=India")
     time.sleep(3)
@@ -59,6 +63,8 @@ def scrape_jobs():
                 "company": company.text.strip(),
                 "link": "https://www.indeed.com" + link.get("href")
             })
+
+    print("Jobs found:", len(jobs))
     return jobs
 
 # ========== EMAIL SENDER ==========
@@ -68,6 +74,7 @@ def send_email(jobs):
 
     for i, email in enumerate(EMAIL_TO):
         name = STUDENT_NAMES[i] if i < len(STUDENT_NAMES) else "Student"
+        print(f"Preparing email for {name} -> {email}")
 
         html = f"""
         <h2>Hello {name},</h2>
@@ -92,21 +99,23 @@ def send_email(jobs):
         msg["Subject"] = subject
         msg.attach(MIMEText(html, "html"))
 
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(EMAIL_USER, EMAIL_PASS)
-            server.send_message(msg)
-
-        print(f"Email sent to {name}")
+        try:
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                server.starttls()
+                print("Logging in with:", EMAIL_USER)
+                server.login(EMAIL_USER, EMAIL_PASS)
+                server.send_message(msg)
+                print(f"Email sent successfully to {email}")
+        except Exception as e:
+            print("EMAIL ERROR:", str(e))
 
 # ========== MAIN ==========
 if __name__ == "__main__":
     jobs = scrape_jobs()
 
-    df = pd.DataFrame(jobs)
-    df.to_csv("jobs.csv", index=False)
-
     if jobs:
         send_email(jobs)
+    else:
+        print("No jobs scraped.")
 
     driver.quit()
