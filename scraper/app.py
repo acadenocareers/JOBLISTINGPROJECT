@@ -1,97 +1,67 @@
 import os
-import requests
 import smtplib
-import random
-from datetime import datetime
+import requests
+from bs4 import BeautifulSoup
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
+from datetime import datetime
 
-load_dotenv()
-
-# ========== CONFIG ==========
+# ========== ENV ==========
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO = os.getenv("EMAIL_TO").split(",")
-RAPID_API_KEY = os.getenv("RAPID_API_KEY")
+EMAIL_TO   = os.getenv("EMAIL_TO")
 
-QUOTES = [
-    "Success is built one application at a time.",
-    "Your future is created by what you do today.",
-    "Great careers begin with brave applications.",
-    "Opportunities don’t happen, you create them.",
-    "Small steps today lead to big success tomorrow."
-]
+print("DEBUG EMAIL_USER:", EMAIL_USER)
+print("DEBUG EMAIL_TO:", EMAIL_TO)
 
-# ========== JOB FETCH ==========
-def fetch_jobs():
+# ========== SCRAPER ==========
+def scrape_jobs():
+    print("Starting scrape...")
+
+    url = "https://www.naukri.com/jobs-in-india"
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    response = requests.get(url, headers=headers, timeout=20)
+    soup = BeautifulSoup(response.text, "html.parser")
+
     jobs = []
+    cards = soup.select(".cust-job-tuple")
 
-    url = "https://jsearch.p.rapidapi.com/search"
-    headers = {
-        "X-RapidAPI-Key": RAPID_API_KEY,
-        "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
-    }
+    print("Found job cards:", len(cards))
 
-    params = {
-        "query": "software developer India",
-        "page": "1",
-        "num_pages": "2"
-    }
+    for card in cards[:8]:   # only 8 jobs for test
+        title = card.select_one(".title")
+        company = card.select_one(".comp-name")
+        link = title["href"] if title else None
 
-    response = requests.get(url, headers=headers, params=params, timeout=20)
-    data = response.json()
+        if title and company and link:
+            jobs.append(f"{title.text.strip()} — {company.text.strip()}\n{link}")
 
-    print("Jobs received:", len(data.get("data", [])))
+    print("Scraped jobs:", len(jobs))
+    return jobs
 
-    for job in data.get("data", []):
-        jobs.append({
-            "title": job["job_title"],
-            "company": job["employer_name"],
-            "link": job["job_apply_link"]
-        })
+# ========== MAILER ==========
+def send_mail(jobs):
+    if not jobs:
+        body = "No jobs scraped today."
+    else:
+        body = "\n\n".join(jobs)
 
-    return jobs[:15]
+    msg = MIMEMultipart()
+    msg["From"] = EMAIL_USER
+    msg["To"] = EMAIL_TO
+    msg["Subject"] = f"Job Updates — {datetime.now().strftime('%d %b %Y')}"
+    msg.attach(MIMEText(body, "plain"))
 
-# ========== EMAIL ==========
-def send_email(jobs):
-    quote = random.choice(QUOTES)
-    subject = f"🎯 Job Updates — {datetime.now().strftime('%d %b %Y')}"
+    print("Connecting to SMTP...")
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(EMAIL_USER, EMAIL_PASS)
+        server.send_message(msg)
 
-    html = f"<h2>{quote}</h2><hr>"
-
-    for job in jobs:
-        html += f"""
-        <p>
-        <b>{job['title']}</b><br>
-        {job['company']}<br>
-        <a href="{job['link']}">Apply Now</a>
-        </p>
-        """
-
-    for email in EMAIL_TO:
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_USER
-        msg["To"] = email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(html, "html"))
-
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(EMAIL_USER, EMAIL_PASS)
-            server.send_message(msg)
-
-    print("Emails sent successfully.")
+    print("Mail sent successfully.")
 
 # ========== MAIN ==========
 if __name__ == "__main__":
-    jobs = fetch_jobs()
-
-    if jobs:
-        send_email(jobs)
-    else:
-        send_email([{
-            "title": "System Notice",
-            "company": "No jobs found today",
-            "link": "https://www.google.com"
-        }])
+    jobs = scrape_jobs()
+    send_mail(jobs)
