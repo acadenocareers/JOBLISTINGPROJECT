@@ -7,17 +7,20 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO")
 
+if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
+    raise Exception("Missing email environment variables")
+
 # Load jobs
 with open("scraper/jobs.json", "r", encoding="utf-8") as f:
     jobs = json.load(f)
 
-# ---------- Beautiful HTML Email ----------
 today = datetime.now().strftime("%d %B %Y")
 
 cards = ""
 for job in jobs[:20]:
     cards += f"""
-    <div style="background:#ffffff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 4px 10px rgba(0,0,0,0.08)">
+    <div style="background:#ffffff;border-radius:12px;padding:18px;margin-bottom:15px;
+                box-shadow:0 4px 10px rgba(0,0,0,0.08)">
         <h3 style="color:#5b2dff;margin-bottom:6px">{job['title']}</h3>
         <p style="margin:4px 0"><b>🏢 {job['company']}</b></p>
         <p style="margin:4px 0;color:#555">📍 {job['park']}</p>
@@ -35,8 +38,15 @@ html = f"""
 <body style="font-family:Segoe UI,Arial;background:#f2f3f7;padding:25px">
 <div style="max-width:700px;margin:auto">
 
+<!-- LOGO HEADER -->
 <div style="background:linear-gradient(90deg,#6a11cb,#ff5f00);
-            padding:35px;border-radius:16px;color:white;text-align:center">
+            padding:30px;border-radius:16px;color:white;text-align:center">
+
+<img src="https://drive.google.com/uc?export=view&id=1a31PXpN-FMK5lq8JJt-OPBJz6IEO7ZvC"
+     alt="Acadeno Logo"
+     width="140"
+     style="display:block;margin:0 auto 15px;">
+
 <h1>Acadeno Technologies Private Limited</h1>
 <p>Where AI Builds Careers</p>
 </div>
@@ -64,7 +74,6 @@ Your future is not waiting to happen — it’s waiting for you to make it happe
 </html>
 """
 
-# ---------- Send Mail ----------
 msg = MIMEMultipart("alternative")
 msg["Subject"] = f"Today's Verified Kerala IT Openings — {today}"
 msg["From"] = EMAIL_USER
