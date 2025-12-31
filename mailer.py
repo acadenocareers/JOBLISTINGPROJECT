@@ -16,6 +16,7 @@ with open("scraper/jobs.json", "r", encoding="utf-8") as f:
 
 today = datetime.now().strftime("%d %B %Y")
 
+# ---------- Job Cards ----------
 cards = ""
 for job in jobs[:20]:
     cards += f"""
@@ -33,25 +34,32 @@ for job in jobs[:20]:
     </div>
     """
 
+# ---------- HTML Email ----------
 html = f"""
 <html>
 <body style="font-family:Segoe UI,Arial;background:#f2f3f7;padding:25px">
 <div style="max-width:700px;margin:auto">
 
-<!-- LOGO HEADER -->
+<!-- PROFESSIONAL HEADER -->
 <div style="background:linear-gradient(90deg,#6a11cb,#ff5f00);
-            padding:30px;border-radius:16px;color:white;text-align:center">
+            padding:28px;border-radius:16px;color:white;text-align:center">
 
 <img src="https://drive.google.com/uc?export=view&id=1a31PXpN-FMK5lq8JJt-OPBJz6IEO7ZvC"
      alt="Acadeno Logo"
-     width="140"
-     style="display:block;margin:0 auto 15px;">
+     width="120"
+     style="display:block;margin:0 auto 6px;">
 
-<h1>Acadeno Technologies Private Limited</h1>
-<p>Where AI Builds Careers</p>
+<h1 style="margin:6px 0 2px 0;font-size:28px;font-weight:700;">
+Acadeno Technologies Private Limited
+</h1>
+
+<p style="margin:0;font-size:14px;opacity:0.9;">
+Where AI Builds Careers
+</p>
 </div>
 
-<div style="background:white;margin-top:25px;padding:30px;border-radius:16px">
+<!-- CONTENT -->
+<div style="background:white;margin-top:22px;padding:30px;border-radius:16px">
 <p>Dear <b>Aswathy</b>,</p>
 
 <p>
@@ -74,6 +82,7 @@ Your future is not waiting to happen — it’s waiting for you to make it happe
 </html>
 """
 
+# ---------- Send Mail ----------
 msg = MIMEMultipart("alternative")
 msg["Subject"] = f"Today's Verified Kerala IT Openings — {today}"
 msg["From"] = EMAIL_USER
