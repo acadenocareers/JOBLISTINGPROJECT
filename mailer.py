@@ -1,4 +1,5 @@
-import json, os, smtplib
+import json, os, smtplib, random
+import pandas as pd
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -10,7 +11,11 @@ EMAIL_TO   = os.getenv("EMAIL_TO")
 if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
     raise Exception("Missing email environment variables")
 
-# Load jobs
+# ---------- Load Random Quote ----------
+quotes_df = pd.read_excel("scraper/career_quotes_unique.xlsx")
+quote = random.choice(quotes_df["Quote"].dropna().tolist())
+
+# ---------- Load Jobs ----------
 with open("scraper/jobs.json", "r", encoding="utf-8") as f:
     jobs = json.load(f)
 
@@ -40,7 +45,6 @@ html = f"""
 <body style="font-family:Segoe UI,Arial;background:#f2f3f7;padding:25px">
 <div style="max-width:700px;margin:auto">
 
-<!-- PROFESSIONAL HEADER -->
 <div style="background:linear-gradient(90deg,#6a11cb,#ff5f00);
             padding:28px;border-radius:16px;color:white;text-align:center">
 
@@ -58,13 +62,11 @@ Where AI Builds Careers
 </p>
 </div>
 
-<!-- CONTENT -->
 <div style="background:white;margin-top:22px;padding:30px;border-radius:16px">
 <p>Dear <b>Aswathy</b>,</p>
 
-<p>
-Every great career begins with a single step — a moment of courage, determination,
-and belief in yourself 🌱
+<p style="font-size:16px;color:#333;font-style:italic">
+“{quote}”
 </p>
 
 <p><b>Here are today’s verified Kerala IT opportunities ({today}):</b></p>
