@@ -2,13 +2,12 @@ name: Daily Job Mailer
 
 on:
   schedule:
-    - cron: '30 9 * * *'   # 3:00 PM India Time
+    - cron: '30 9 * * *'   # 3:00 PM IST
   workflow_dispatch:
 
 jobs:
   send-mail:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
 
@@ -16,14 +15,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install requirements
-        run: |
-          pip install requests
+      - run: pip install requests beautifulsoup4
 
-      - name: Send Job Mail
+      - name: Send Email
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           EMAIL_TO:   ${{ secrets.EMAIL_TO }}
-        run: |
-          python scraper/mailer.py
+        run: python mailer.py
