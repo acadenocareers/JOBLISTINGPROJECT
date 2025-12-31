@@ -7,6 +7,7 @@ from datetime import datetime
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO")
+USER_NAME = os.getenv("USER_NAME", "Student")
 
 if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
     raise Exception("Missing email environment variables")
@@ -63,7 +64,7 @@ Where AI Builds Careers
 </div>
 
 <div style="background:white;margin-top:22px;padding:30px;border-radius:16px">
-<p>Dear <b>Aswathy</b>,</p>
+<p>Dear <b>{USER_NAME}</b>,</p>
 
 <p style="font-size:16px;color:#333;font-style:italic">
 “{quote}”
