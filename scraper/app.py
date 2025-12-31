@@ -1,98 +1,65 @@
-import time, re, os
-from datetime import datetime
+import requests
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from datetime import datetime
+import smtplib, os
 
-# ------------------ CONFIG ------------------
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("EMAIL_PASS")
+EMAIL_TO   = os.getenv("EMAIL_TO")
 
-TECH_KEYWORDS = [
-    "python","data","analyst","analytics","power bi","tableau",
-    "machine learning","ai","full stack","developer","engineer",
-    "intern","trainee","react","django","flask","frontend","backend","flutter"
+HEADERS = {"User-Agent": "Mozilla/5.0"}
+
+REGIONS = [
+    ("Kerala", "Kochi"),
+    ("Kerala", "Trivandrum"),
+    ("Tamil Nadu", "Chennai"),
+    ("Tamil Nadu", "Coimbatore"),
+    ("Karnataka", "Bangalore"),
 ]
 
-EXCLUDE = ["php","laravel","wordpress",".net","c#","java","senior","lead","manager","architect"]
-
-# ------------------ BROWSER ------------------
-
-def start_browser():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-# ------------------ FILTER ------------------
-
-def relevant(title):
-    t = title.lower()
-    if any(x in t for x in EXCLUDE): return False
-    return any(x in t for x in TECH_KEYWORDS)
-
-# ------------------ SCRAPERS ------------------
-
-def scrape_infopark(driver):
-    jobs=[]
-    for page in range(1,6):
-        url=f"https://infopark.in/companies/job-search?page={page}"
-        driver.get(url); time.sleep(2)
-        soup=BeautifulSoup(driver.page_source,"html.parser")
-        rows=soup.select("table tr")[1:]
-        for r in rows:
-            c=r.find_all("td")
-            if len(c)<3: continue
-            title=c[1].text.strip()
-            company=c[2].text.strip()
-            link=r.find("a")["href"]
-            if relevant(title):
-                jobs.append(("Infopark",title,company,"https://infopark.in"+link))
+def scrape_indeed(city):
+    jobs = []
+    url = f"https://in.indeed.com/jobs?q=software+developer&l={city}"
+    soup = BeautifulSoup(requests.get(url, headers=HEADERS).text, "html.parser")
+    for card in soup.select("div.job_seen_beacon")[:8]:
+        title = card.select_one("h2").get_text(strip=True)
+        company = card.select_one(".companyName").get_text(strip=True)
+        link = "https://in.indeed.com" + card.select_one("a")["href"]
+        jobs.append((title, company, link))
     return jobs
 
-def scrape_technopark(driver):
-    jobs=[]
-    driver.get("https://technopark.in/job-search")
-    time.sleep(3)
-    soup=BeautifulSoup(driver.page_source,"html.parser")
-    for a in soup.select("a"):
-        title=a.text.strip()
-        href=a.get("href","")
-        if "/job/" in href and relevant(title):
-            jobs.append(("Technopark",title,"Company","https://technopark.in"+href))
+def scrape_google(city):
+    jobs = []
+    q = f"software developer jobs in {city}"
+    url = f"https://www.google.com/search?q={q}"
+    soup = BeautifulSoup(requests.get(url, headers=HEADERS).text, "html.parser")
+    for g in soup.select("div.g")[:6]:
+        if g.h3 and g.a:
+            jobs.append((g.h3.text, "Company", g.a["href"]))
     return jobs
 
-def scrape_cyberpark(driver):
-    jobs=[]
-    driver.get("https://cyberparkkerala.org/careers")
-    time.sleep(3)
-    text=driver.find_element("tag name","body").text.split("\n")
-    for line in text:
-        if relevant(line):
-            jobs.append(("Cyberpark",line,"Company","https://cyberparkkerala.org/careers"))
-    return jobs
+def get_jobs():
+    all_jobs = []
+    for state, city in REGIONS:
+        all_jobs += scrape_indeed(city)
+        all_jobs += scrape_google(city)
+    return all_jobs
 
-# ------------------ MAIN ------------------
+def send_email(jobs):
+    subject = f"South India IT Jobs — {datetime.now().strftime('%d %b %Y')}"
+    body = ""
+    for t, c, l in jobs[:40]:
+        body += f"{t}\n{c}\n{l}\n\n"
+    if not body:
+        body = "No jobs found today."
+
+    msg = f"Subject: {subject}\n\n{body}"
+    with smtplib.SMTP("smtp.gmail.com",587) as s:
+        s.starttls()
+        s.login(EMAIL_USER, EMAIL_PASS)
+        s.sendmail(EMAIL_USER, EMAIL_TO, msg)
 
 if __name__ == "__main__":
-    driver=start_browser()
-    all_jobs=[]
-    
-    all_jobs+=scrape_infopark(driver)
-    all_jobs+=scrape_technopark(driver)
-    all_jobs+=scrape_cyberpark(driver)
-
-    driver.quit()
-
-    print(f"\nTOTAL JOBS FOUND: {len(all_jobs)}\n")
-
-    for park,title,company,link in all_jobs:
-        print(f"{park} | {title} | {company}")
-        print(link,"\n")
-
-    with open("jobs.txt","w",encoding="utf-8") as f:
-        for j in all_jobs:
-            f.write(" | ".join(j)+"\n")
-
-    print("Saved to jobs.txt")
+    jobs = get_jobs()
+    print("Jobs found:", len(jobs))
+    send_email(jobs)
