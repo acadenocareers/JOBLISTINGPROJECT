@@ -8,14 +8,19 @@ on:
 jobs:
   send-mail:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - run: pip install requests beautifulsoup4
+      - name: Install Dependencies
+        run: |
+          pip install requests beautifulsoup4 pandas openpyxl
 
       - name: Send Email
         env:
