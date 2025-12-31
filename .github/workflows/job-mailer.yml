@@ -27,4 +27,5 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           EMAIL_TO:   ${{ secrets.EMAIL_TO }}
+          USER_NAME:  ${{ secrets.STUDENT_NAMES }}
         run: python mailer.py
