@@ -1,64 +1,80 @@
-import json
-import smtplib
-from email.mime.text import MIMEText
+import json, os, smtplib
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from datetime import datetime
-import os
 
-# ====== ENV VARIABLES FROM GITHUB SECRETS ======
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO")
 
-JOBS_FILE = "scraper/jobs.json"
+# Load jobs
+with open("scraper/jobs.json", "r", encoding="utf-8") as f:
+    jobs = json.load(f)
 
-def load_jobs():
-    if not os.path.exists(JOBS_FILE):
-        return []
-    with open(JOBS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+# ---------- Beautiful HTML Email ----------
+today = datetime.now().strftime("%d %B %Y")
 
-def format_mail(jobs):
-    today = datetime.now().strftime("%d %b %Y")
-    subject = f"🧑‍💻 Daily IT Job Updates — {today}"
+cards = ""
+for job in jobs[:20]:
+    cards += f"""
+    <div style="background:#ffffff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 4px 10px rgba(0,0,0,0.08)">
+        <h3 style="color:#5b2dff;margin-bottom:6px">{job['title']}</h3>
+        <p style="margin:4px 0"><b>🏢 {job['company']}</b></p>
+        <p style="margin:4px 0;color:#555">📍 {job['park']}</p>
+        <a href="{job.get('link','')}" 
+           style="display:inline-block;margin-top:8px;padding:10px 16px;
+                  background:linear-gradient(90deg,#ff7a18,#ff3d77);
+                  color:white;text-decoration:none;border-radius:8px;font-weight:bold">
+           🔗 View & Apply
+        </a>
+    </div>
+    """
 
-    body = f"Hello,\n\nHere are today's latest job openings:\n\n"
+html = f"""
+<html>
+<body style="font-family:Segoe UI,Arial;background:#f2f3f7;padding:25px">
+<div style="max-width:700px;margin:auto">
 
-    for job in jobs[:40]:
-        body += f"""
-🔹 {job.get('title')}
-🏢 {job.get('company')}
-📍 {job.get('park')}
-🗓 {job.get('date')}
+<div style="background:linear-gradient(90deg,#6a11cb,#ff5f00);
+            padding:35px;border-radius:16px;color:white;text-align:center">
+<h1>Acadeno Technologies Private Limited</h1>
+<p>Where AI Builds Careers</p>
+</div>
 
+<div style="background:white;margin-top:25px;padding:30px;border-radius:16px">
+<p>Dear <b>Aswathy</b>,</p>
+
+<p>
+Every great career begins with a single step — a moment of courage, determination,
+and belief in yourself 🌱
+</p>
+
+<p><b>Here are today’s verified Kerala IT opportunities ({today}):</b></p>
+
+{cards}
+
+<p style="margin-top:30px;font-size:14px;color:#666">
+Your future is not waiting to happen — it’s waiting for you to make it happen ✨
+</p>
+
+<p style="font-size:14px;color:#666">— Team Acadeno</p>
+</div>
+</div>
+</body>
+</html>
 """
 
-    body += "\nBest of luck!\nYour Job Tracker 🤖"
+# ---------- Send Mail ----------
+msg = MIMEMultipart("alternative")
+msg["Subject"] = f"Today's Verified Kerala IT Openings — {today}"
+msg["From"] = EMAIL_USER
+msg["To"] = EMAIL_TO
+msg.attach(MIMEText(html, "html"))
 
-    return subject, body
+server = smtplib.SMTP("smtp.gmail.com", 587)
+server.starttls()
+server.login(EMAIL_USER, EMAIL_PASS)
+server.send_message(msg)
+server.quit()
 
-def send_mail(subject, body):
-    msg = MIMEMultipart()
-    msg["From"] = EMAIL_USER
-    msg["To"] = EMAIL_TO
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
-
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login(EMAIL_USER, EMAIL_PASS)
-        server.send_message(msg)
-
-    print("✅ Mail sent successfully")
-
-def main():
-    jobs = load_jobs()
-    if not jobs:
-        print("⚠️ No jobs found. Mail not sent.")
-        return
-
-    subject, body = format_mail(jobs)
-    send_mail(subject, body)
-
-if __name__ == "__main__":
-    main()
+print("Email sent successfully")
