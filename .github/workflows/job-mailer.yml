@@ -6,25 +6,24 @@ on:
   workflow_dispatch:
 
 jobs:
-  send-jobs:
+  send-mail:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install requirements
         run: |
-          pip install requests beautifulsoup4
+          pip install requests
 
-      - name: Run job scraper
+      - name: Send Job Mail
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           EMAIL_TO:   ${{ secrets.EMAIL_TO }}
         run: |
-          python scraper/app.py
+          python scraper/mailer.py
