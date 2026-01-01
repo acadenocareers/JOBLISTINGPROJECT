@@ -31,12 +31,23 @@ for job in jobs[:20]:
         <h3 style="color:#5b2dff;margin-bottom:6px">{job['title']}</h3>
         <p style="margin:4px 0"><b>🏢 {job['company']}</b></p>
         <p style="margin:4px 0;color:#555">📍 {job['park']}</p>
-        <a href="{job.get('link','')}" 
-           style="display:inline-block;margin-top:8px;padding:10px 16px;
-                  background:linear-gradient(90deg,#ff7a18,#ff3d77);
-                  color:white;text-decoration:none;border-radius:8px;font-weight:bold">
-           🔗 View & Apply
-        </a>
+        <a href="{job.get('link','')}" target="_blank"
+   style="
+      display:inline-block;
+      margin-top:10px;
+      padding:12px 22px;
+      background:#ff6a00;
+      color:#ffffff !important;
+      text-decoration:none;
+      border-radius:10px;
+      font-weight:600;
+      font-size:14px;
+      border:1px solid #ff6a00;
+      box-shadow:0 4px 8px rgba(0,0,0,0.15);
+      ">
+   View & Apply
+</a>
+
     </div>
     """
 
