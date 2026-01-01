@@ -96,7 +96,7 @@ Acadeno Technologies Private Limited
 
 <p style="font-size:16px;color:#333;font-style:italic">“{quote}”</p>
 
-<p><b>Here are today’s verified Kerala IT opportunities ({today}):</b></p>
+<p><b>Here are today’s verified IT opportunities ({today}):</b></p>
 
 {cards}
 
