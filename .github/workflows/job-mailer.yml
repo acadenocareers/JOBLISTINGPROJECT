@@ -20,12 +20,21 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install requests beautifulsoup4 pandas openpyxl
+          pip install -r requirements.txt
+          pip install pandas openpyxl requests beautifulsoup4 selenium webdriver-manager
 
+      # 🧲 Run Scraper (correct path)
+      - name: Run Job Scraper
+        run: |
+          cd scraper
+          python app.py
+
+      # ✉️ Send Mail (mailer.py is in root)
       - name: Send Email
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
           EMAIL_TO:   ${{ secrets.EMAIL_TO }}
           USER_NAME:  ${{ secrets.STUDENT_NAMES }}
-        run: python mailer.py
+        run: |
+          python mailer.py
