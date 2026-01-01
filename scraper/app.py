@@ -19,6 +19,7 @@ def build_fallback_link(title, company):
 def get_infopark():
     jobs = []
     url = "https://infopark.in/companies/job-search"
+
     r = requests.get(url, headers=HEADERS, timeout=20)
     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -49,12 +50,14 @@ def get_infopark():
                 "company": company,
                 "link": job_link
             })
+
     return jobs
 
 
 def get_technopark():
     jobs = []
     url = "https://technopark.in/job-search"
+
     r = requests.get(url, headers=HEADERS, timeout=20)
     soup = BeautifulSoup(r.text, "html.parser")
 
@@ -85,26 +88,26 @@ def get_technopark():
                 "company": company,
                 "link": job_link
             })
+
     return jobs
 
 
 def get_cyberpark():
     jobs = []
     url = "https://www.ulcyberpark.com/jobs"
+
     r = requests.get(url, headers=HEADERS, timeout=20)
     soup = BeautifulSoup(r.text, "html.parser")
 
     for a in soup.select("a"):
-        text = a.get_text(strip=True)
+        title = a.get_text(strip=True)
         href = a.get("href", "")
-        if len(text) > 12 and "job" in text.lower():
-            title = text
+
+        if len(title) > 12 and "job" in title.lower():
             company = "Cyberpark Company"
 
-            job_link = ""
-            if href:
-                job_link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
-            else:
+            job_link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
+            if not href:
                 job_link = build_fallback_link(title, company)
 
             jobs.append({
@@ -114,26 +117,26 @@ def get_cyberpark():
                 "company": company,
                 "link": job_link
             })
+
     return jobs
 
 
 def get_tidel_park():
     jobs = []
     url = "https://www.tidelpark.com/careers"
+
     r = requests.get(url, headers=HEADERS, timeout=20)
     soup = BeautifulSoup(r.text, "html.parser")
 
     for a in soup.select("a"):
-        text = a.get_text(strip=True)
+        title = a.get_text(strip=True)
         href = a.get("href", "")
-        if any(word in text.lower() for word in ["developer", "engineer", "analyst", "intern"]):
-            title = text
+
+        if any(word in title.lower() for word in ["developer", "engineer", "analyst", "intern"]):
             company = "TIDEL Park"
 
-            job_link = ""
-            if href:
-                job_link = href if href.startswith("http") else "https://www.tidelpark.com" + href
-            else:
+            job_link = href if href.startswith("http") else "https://www.tidelpark.com" + href
+            if not href:
                 job_link = build_fallback_link(title, company)
 
             jobs.append({
@@ -143,6 +146,7 @@ def get_tidel_park():
                 "company": company,
                 "link": job_link
             })
+
     return jobs
 
 # ================== MAIN ==================
@@ -153,6 +157,10 @@ def main():
     all_jobs += get_technopark()
     all_jobs += get_cyberpark()
     all_jobs += get_tidel_park()
+
+    # Remove duplicates
+    unique = {(job["title"], job["company"], job["link"]): job for job in all_jobs}
+    all_jobs = list(unique.values())
 
     with open(JOBS_FILE, "w", encoding="utf-8") as f:
         json.dump(all_jobs, f, indent=2, ensure_ascii=False)
