@@ -7,7 +7,7 @@ from datetime import datetime
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO")
-USER_NAME = os.getenv("USER_NAME", "Student")
+USER_NAME  = os.getenv("USER_NAME", "Student")
 
 if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
     raise Exception("Missing email environment variables")
@@ -28,25 +28,31 @@ for job in jobs[:20]:
     cards += f"""
     <div style="background:#ffffff;border-radius:12px;padding:18px;margin-bottom:15px;
                 box-shadow:0 4px 10px rgba(0,0,0,0.08)">
+
         <h3 style="color:#5b2dff;margin-bottom:6px">{job['title']}</h3>
         <p style="margin:4px 0"><b>🏢 {job['company']}</b></p>
         <p style="margin:4px 0;color:#555">📍 {job['park']}</p>
-        <a href="{job.get('link','')}" target="_blank"
-   style="
-      display:inline-block;
-      margin-top:10px;
-      padding:12px 22px;
-      background:#ff6a00;
-      color:#ffffff !important;
-      text-decoration:none;
-      border-radius:10px;
-      font-weight:600;
-      font-size:14px;
-      border:1px solid #ff6a00;
-      box-shadow:0 4px 8px rgba(0,0,0,0.15);
-      ">
-   View & Apply
-</a>
+
+        <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+                <td bgcolor="#ff6a00" style="border-radius:10px;">
+                    <a href="{job['link']}" target="_blank"
+                       style="
+                          display:inline-block;
+                          padding:12px 22px;
+                          color:#ffffff !important;
+                          text-decoration:none;
+                          font-weight:600;
+                          font-size:14px;
+                          border-radius:10px;
+                          background:linear-gradient(90deg,#ff7a18,#ff3d77);
+                          border:1px solid #ff6a00;
+                       ">
+                        View & Apply
+                    </a>
+                </td>
+            </tr>
+        </table>
 
     </div>
     """
@@ -75,6 +81,7 @@ Where AI Builds Careers
 </div>
 
 <div style="background:white;margin-top:22px;padding:30px;border-radius:16px">
+
 <p>Dear <b>{USER_NAME}</b>,</p>
 
 <p style="font-size:16px;color:#333;font-style:italic">
@@ -90,6 +97,7 @@ Your future is not waiting to happen — it’s waiting for you to make it happe
 </p>
 
 <p style="font-size:14px;color:#666">— Team Acadeno</p>
+
 </div>
 </div>
 </body>
