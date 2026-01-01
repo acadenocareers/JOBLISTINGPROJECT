@@ -51,16 +51,17 @@ for job in sampled_jobs:
            display:inline-block;
            margin-top:10px;
            padding:10px 22px;
-           background:linear-gradient(90deg,#ff7a18,#ff3d77);
-           color:white;
+           background:linear-gradient(90deg,#5f2cff,#ff7a18);
+           color:#ffffff;
            text-decoration:none;
            font-weight:600;
+           font-size:14px;
+           letter-spacing:0.3px;
            border-radius:10px;
+           box-shadow:0 6px 14px rgba(95,44,255,0.35);
            ">
            View & Apply
         </a>
-
-        <p style="font-size:11px;color:#999;margin-top:8px">{link}</p>
     </div>
     """
 
