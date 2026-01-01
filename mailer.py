@@ -27,7 +27,13 @@ today = datetime.now().strftime("%d %B %Y")
 cards = ""
 
 for job in jobs[:20]:
-    link = job.get("link", "https://www.google.com")
+
+    link = str(job.get("link", "")).strip()
+
+    # 🚨 HARD PROTECTION — never fall back to Google
+    if not link.startswith("http"):
+        print("⚠️ Skipped broken job:", job.get("title"))
+        continue
 
     cards += f"""
     <div style="background:#ffffff;border-radius:12px;padding:18px;margin-bottom:15px;
