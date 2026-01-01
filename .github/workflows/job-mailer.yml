@@ -10,18 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # 2️⃣ Setup Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
+      # 3️⃣ Install dependencies (including Selenium stack)
       - name: Install Dependencies
         run: |
-          pip install requests beautifulsoup4 pandas openpyxl
+          pip install requests beautifulsoup4 pandas openpyxl selenium webdriver-manager
 
+      # 4️⃣ Run scraper first (updates jobs.json)
+      - name: Run Job Scraper
+        run: python app.py
+
+      # 5️⃣ Send email using updated jobs.json
       - name: Send Email
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
