@@ -42,7 +42,8 @@ for job in sampled_jobs:
     <div style="border:1px solid #e6e9f0;border-radius:14px;padding:22px;
                 margin:18px 0;background:#fafbff">
 
-        <h3 style="color:#5f2cff;margin:0 0 8px 0;font-size:18px">
+        <h3 style="color:#5f2cff;margin:0 0 8px 0;font-size:18px;
+                   font-weight:600;letter-spacing:0.2px">
             {job.get('title','')}
         </h3>
 
@@ -50,17 +51,17 @@ for job in sampled_jobs:
            style="
            display:inline-block;
            margin-top:10px;
-           padding:10px 22px;
-           background:linear-gradient(90deg,#ff7a18,#ff3d77);
+           padding:11px 24px;
+           background:linear-gradient(90deg,#ff6a00,#ff8c1a);
            color:white;
            text-decoration:none;
            font-weight:600;
+           font-size:14px;
            border-radius:10px;
            ">
            View & Apply
         </a>
 
-        <p style="font-size:11px;color:#999;margin-top:8px">{link}</p>
     </div>
     """
 
@@ -76,10 +77,14 @@ html = f"""
             padding:32px;color:white;text-align:center">
 
 <img src="https://drive.google.com/uc?export=view&id=1a31PXpN-FMK5lq8JJt-OPBJz6IEO7ZvC"
-     width="90" style="display:block;margin:0 auto 10px;">
+     width="130" style="display:block;margin:0 auto 10px;">
 
-<h1 style="margin:0;font-size:28px;">Acadeno Technologies</h1>
-<p style="margin:6px 0 0;font-size:14px;opacity:0.9">Verified IT Opportunities</p>
+<h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:0.4px">
+Acadeno Technologies
+</h1>
+<p style="margin:6px 0 0;font-size:14px;opacity:0.9;letter-spacing:0.3px">
+Verified IT Opportunities
+</p>
 </div>
 
 <div style="padding:32px">
