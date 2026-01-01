@@ -113,7 +113,7 @@ Your future is not waiting to happen — it’s waiting for you to make it happe
 
 # ---------- SEND EMAIL ----------
 msg = MIMEMultipart("alternative")
-msg["Subject"] = f"Today's Verified Kerala IT Openings — {today}"
+msg["Subject"] = f"Today's Verified IT Openings — {today}"
 msg["From"] = EMAIL_USER
 msg["To"] = EMAIL_TO
 msg.attach(MIMEText(html, "html"))
