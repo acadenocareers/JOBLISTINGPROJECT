@@ -3,7 +3,7 @@ import pandas as pd
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
-import random
+
 # ---------- ENV VARIABLES ----------
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
@@ -26,12 +26,10 @@ today = datetime.now().strftime("%d %B %Y")
 # ---------- JOB CARDS ----------
 cards = ""
 
-
 sampled_jobs = random.sample(jobs, min(20, len(jobs)))
+
 for job in sampled_jobs:
 
-
-    # 🧯 HARD FIX FOR BROKEN LINKS
     raw_link = job.get("link", "").strip()
 
     if not raw_link.startswith("http"):
@@ -41,71 +39,70 @@ for job in sampled_jobs:
     link = raw_link
 
     cards += f"""
-    <div style="background:#ffffff;border-radius:12px;padding:18px;margin-bottom:15px;
-                box-shadow:0 4px 10px rgba(0,0,0,0.08)">
-      <h3 style="color:#5b2dff;margin-bottom:6px">{job.get('title','')}</h3>
+    <div style="border:1px solid #e6e9f0;border-radius:14px;padding:22px;
+                margin:18px 0;background:#fafbff">
 
-      <table role="presentation" cellspacing="0" cellpadding="0">
-        <tr>
-          <td bgcolor="#ff6a00" style="border-radius:10px;">
-            <a href="{link}" target="_blank"
-               style="
-                 display:inline-block;
-                 padding:12px 22px;
-                 color:#ffffff !important;
-                 text-decoration:none;
-                 font-weight:600;
-                 font-size:14px;
-                 border-radius:10px;
-                 background:#ff6a00;
-               ">
-              View & Apply
-            </a>
-          </td>
-        </tr>
-      </table>
+        <h3 style="color:#5f2cff;margin:0 0 8px 0;font-size:18px">
+            {job.get('title','')}
+        </h3>
 
-      <!-- Gmail Link Stabilizer -->
-      <p style="font-size:11px;color:#999;margin-top:8px">
-         {link}
-      </p>
+        <a href="{link}" target="_blank"
+           style="
+           display:inline-block;
+           margin-top:10px;
+           padding:10px 22px;
+           background:linear-gradient(90deg,#ff7a18,#ff3d77);
+           color:white;
+           text-decoration:none;
+           font-weight:600;
+           border-radius:10px;
+           ">
+           View & Apply
+        </a>
+
+        <p style="font-size:11px;color:#999;margin-top:8px">{link}</p>
     </div>
     """
 
 # ---------- HTML EMAIL ----------
 html = f"""
 <html>
-<body style="font-family:Segoe UI,Arial;background:#f2f3f7;padding:25px">
-<div style="max-width:700px;margin:auto">
+<body style="font-family:'Segoe UI',Arial;background:#f4f6fb;padding:30px">
 
-<div style="background:linear-gradient(90deg,#6a11cb,#ff5f00);
-            padding:28px;border-radius:16px;color:white;text-align:center">
+<div style="max-width:760px;margin:auto;background:white;border-radius:18px;
+            box-shadow:0 10px 25px rgba(0,0,0,0.08);overflow:hidden">
+
+<div style="background:linear-gradient(135deg,#5f2cff,#ff7a18);
+            padding:32px;color:white;text-align:center">
 
 <img src="https://drive.google.com/uc?export=view&id=1a31PXpN-FMK5lq8JJt-OPBJz6IEO7ZvC"
-     width="120" style="display:block;margin:0 auto 6px;">
+     width="90" style="display:block;margin:0 auto 10px;">
 
-<h1 style="margin:6px 0 2px 0;font-size:28px;font-weight:700;">
-Acadeno Technologies Private Limited
-</h1>
-
-<p style="margin:0;font-size:14px;opacity:0.9;">Where AI Builds Careers</p>
+<h1 style="margin:0;font-size:28px;">Acadeno Technologies</h1>
+<p style="margin:6px 0 0;font-size:14px;opacity:0.9">Verified IT Opportunities</p>
 </div>
 
-<div style="background:white;margin-top:22px;padding:30px;border-radius:16px">
-<p>Dear <b>{USER_NAME}</b>,</p>
+<div style="padding:32px">
 
-<p style="font-size:16px;color:#333;font-style:italic">“{quote}”</p>
+<p style="font-size:15px;">Dear <b>{USER_NAME}</b>,</p>
 
-<p><b>Here are today’s verified IT opportunities ({today}):</b></p>
+<p style="font-style:italic;color:#444;">“{quote}”</p>
+
+<p style="font-weight:600;margin-top:20px;">Here are today’s opportunities — <b>{today}</b></p>
 
 {cards}
 
-<p style="margin-top:30px;font-size:14px;color:#666">
+<p style="margin-top:28px;font-size:14px;color:#666">
 Your future is not waiting to happen — it’s waiting for you to make it happen ✨
 </p>
 
 <p style="font-size:14px;color:#666">— Team Acadeno</p>
 </div>
+
+<div style="background:#f1f3f8;padding:20px;text-align:center;font-size:13px;color:#666">
+© {datetime.now().year} Acadeno Technologies • Building AI Careers
+</div>
+
 </div>
 </body>
 </html>
