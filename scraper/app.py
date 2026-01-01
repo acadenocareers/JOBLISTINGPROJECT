@@ -3,6 +3,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import requests
 from datetime import datetime
+from urllib.parse import urljoin   # <-- 🔧 FIX ADDED
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -119,7 +120,10 @@ def fetch_infopark(pages=6):
             c=r.find_all("td")
             if len(c)<3: continue
             title=c[1].text.strip()
-            link="https://infopark.in"+r.find("a")["href"]
+
+            raw_href = r.find("a")["href"]
+            link = urljoin("https://infopark.in", raw_href)   # <-- 🔧 FIXED
+
             if looks_relevant(title):
                 jobs.append({"title":title,"link":link})
     return jobs
