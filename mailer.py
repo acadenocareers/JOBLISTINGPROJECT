@@ -3,7 +3,7 @@ import pandas as pd
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
-
+import random
 # ---------- ENV VARIABLES ----------
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
@@ -26,7 +26,10 @@ today = datetime.now().strftime("%d %B %Y")
 # ---------- JOB CARDS ----------
 cards = ""
 
-for job in jobs[:20]:
+
+sampled_jobs = random.sample(jobs, min(20, len(jobs)))
+for job in sampled_jobs:
+
 
     # 🧯 HARD FIX FOR BROKEN LINKS
     raw_link = job.get("link", "").strip()
