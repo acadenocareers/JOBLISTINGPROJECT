@@ -28,40 +28,44 @@ cards = ""
 
 for job in jobs[:20]:
 
-    link = str(job.get("link", "")).strip()
+    # 🧯 HARD FIX FOR BROKEN LINKS
+    raw_link = job.get("link", "").strip()
 
-    # 🚨 HARD PROTECTION — never fall back to Google
-    if not link.startswith("http"):
-        print("⚠️ Skipped broken job:", job.get("title"))
-        continue
+    if not raw_link.startswith("http"):
+        raw_link = "https://" + raw_link
+
+    raw_link = raw_link.replace("infopark.inhttps://", "https://infopark.in/")
+    link = raw_link
 
     cards += f"""
     <div style="background:#ffffff;border-radius:12px;padding:18px;margin-bottom:15px;
                 box-shadow:0 4px 10px rgba(0,0,0,0.08)">
-        <h3 style="color:#5b2dff;margin-bottom:6px">{job.get('title','')}</h3>
-        <p style="margin:4px 0"><b>🏢 {job.get('company','')}</b></p>
-        <p style="margin:4px 0;color:#555">📍 {job.get('park','')}</p>
+      <h3 style="color:#5b2dff;margin-bottom:6px">{job.get('title','')}</h3>
 
-        <table role="presentation" cellspacing="0" cellpadding="0">
-          <tr>
-            <td bgcolor="#ff6a00" style="border-radius:10px;">
-              <a href="{link}" target="_blank"
-                 style="
-                    display:inline-block;
-                    padding:12px 22px;
-                    color:#ffffff !important;
-                    text-decoration:none;
-                    font-weight:600;
-                    font-size:14px;
-                    border-radius:10px;
-                    background:linear-gradient(90deg,#ff7a18,#ff3d77);
-                    border:1px solid #ff6a00;
-                 ">
-                View & Apply
-              </a>
-            </td>
-          </tr>
-        </table>
+      <table role="presentation" cellspacing="0" cellpadding="0">
+        <tr>
+          <td bgcolor="#ff6a00" style="border-radius:10px;">
+            <a href="{link}" target="_blank"
+               style="
+                 display:inline-block;
+                 padding:12px 22px;
+                 color:#ffffff !important;
+                 text-decoration:none;
+                 font-weight:600;
+                 font-size:14px;
+                 border-radius:10px;
+                 background:#ff6a00;
+               ">
+              View & Apply
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Gmail Link Stabilizer -->
+      <p style="font-size:11px;color:#999;margin-top:8px">
+         {link}
+      </p>
     </div>
     """
 
