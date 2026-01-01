@@ -1,183 +1,232 @@
-import requests
-import json
+import time, re, json, subprocess
+import pandas as pd
 from bs4 import BeautifulSoup
+import requests
 from datetime import datetime
-import subprocess
-from urllib.parse import quote_plus
 
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+
 JOBS_FILE = "jobs.json"
 
-# ================== HELPERS ==================
+# =========================================================
+# DRIVER (STEALTH + HEADLESS + CRASH SAFE)
+# =========================================================
 
-def build_fallback_link(title, company):
-    query = quote_plus(f"{title} {company}")
-    return f"https://www.google.com/search?q={query}"
+def create_driver():
+    chrome_options = Options()
 
-# ================== SCRAPERS ==================
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--no-sandbox")
 
-def get_infopark():
-    jobs = []
-    url = "https://infopark.in/companies/job-search"
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/122.0.0.0 Safari/537.36"
+    )
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option("useAutomationExtension", False)
 
-    r = requests.get(url, headers=HEADERS, timeout=20)
-    soup = BeautifulSoup(r.text, "html.parser")
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()),
+                            options=chrome_options)
 
-    table = soup.find("table")
-    if not table:
-        return jobs
+driver = create_driver()
 
-    for row in table.find_all("tr")[1:]:
-        cols = row.find_all("td")
-        if len(cols) >= 3:
-            title_cell = cols[1]
-            title = title_cell.text.strip()
-            company = cols[2].text.strip()
+# =========================================================
+# HELPERS
+# =========================================================
 
-            link_tag = title_cell.find("a")
-            job_link = ""
+def scroll_page(times=10, pause=1.2):
+    for _ in range(times):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(pause)
 
-            if link_tag and link_tag.get("href"):
-                job_link = "https://infopark.in" + link_tag["href"]
+# =========================================================
+# FILTERS
+# =========================================================
 
-            if not job_link:
-                job_link = build_fallback_link(title, company)
+EXCLUDE = ["php","laravel","wordpress","drupal",".net","c#","java","spring","hibernate",
+           "senior","lead","manager","architect","director","principal","vp","head",
+           "3 year","4 year","5 year","6 year","7 year"]
 
-            jobs.append({
-                "park": "Infopark, Kochi",
-                "date": cols[0].text.strip(),
-                "title": title,
-                "company": company,
-                "link": job_link
-            })
+INCLUDE = ["python","django","flask","fastapi","react","angular","vue","javascript",
+           "full stack","backend","frontend","machine learning","ml","ai",
+           "data","analyst","power bi","tableau","sql","nlp","llm","pandas",
+           "numpy","tensorflow","pytorch"]
 
+HIGH_EXP = re.compile(r"\b([3-9]|[1-9]\d)\+?\s*(year|years)\b", re.I)
+
+def looks_relevant(title):
+    t = title.lower()
+    if any(x in t for x in EXCLUDE): return False
+    if not any(x in t for x in INCLUDE): return False
+    if re.search(HIGH_EXP, t): return False
+    return True
+
+def is_valid_job_link(link):
+    if not link: return False
+    bad = ["#","javascript","mailto","/blog","/en/","/main","/infrastructure",
+           "/land","campaign","webmail"]
+    return not any(b in link.lower() for b in bad)
+
+# =========================================================
+# NETWORK SAFE GET
+# =========================================================
+
+def safe_get(url, retries=3):
+    global driver
+    for i in range(retries):
+        try:
+            driver.get(url)
+            time.sleep(2)
+            return BeautifulSoup(driver.page_source,"html.parser")
+        except:
+            print(f"⚠️ Load failed {i+1}/{retries} → {url}")
+            try: driver.quit()
+            except: pass
+            time.sleep(2)
+            driver = create_driver()
+    return None
+
+# =========================================================
+# DEDUPE
+# =========================================================
+
+def dedupe(jobs):
+    seen=set(); out=[]
+    for j in jobs:
+        k=(j["title"].lower(), j["link"])
+        if k not in seen:
+            seen.add(k); out.append(j)
+    return out
+
+# =========================================================
+# SCRAPERS (ALL WEBSITES)
+# =========================================================
+
+def fetch_infopark(pages=6):
+    jobs=[]
+    for p in range(1,pages+1):
+        soup=safe_get(f"https://infopark.in/companies/job-search?page={p}")
+        if not soup: continue
+        for r in soup.select("table tr")[1:]:
+            c=r.find_all("td")
+            if len(c)<3: continue
+            title=c[1].text.strip()
+            link="https://infopark.in"+r.find("a")["href"]
+            if looks_relevant(title):
+                jobs.append({"title":title,"link":link})
     return jobs
 
-
-def get_technopark():
-    jobs = []
-    url = "https://technopark.in/job-search"
-
-    r = requests.get(url, headers=HEADERS, timeout=20)
-    soup = BeautifulSoup(r.text, "html.parser")
-
-    table = soup.find("table")
-    if not table:
-        return jobs
-
-    for row in table.find_all("tr")[1:]:
-        cols = row.find_all("td")
-        if len(cols) >= 3:
-            title_cell = cols[1]
-            title = title_cell.text.strip()
-            company = cols[2].text.strip()
-
-            link_tag = title_cell.find("a")
-            job_link = ""
-
-            if link_tag and link_tag.get("href"):
-                job_link = "https://technopark.in" + link_tag["href"]
-
-            if not job_link:
-                job_link = build_fallback_link(title, company)
-
-            jobs.append({
-                "park": "Technopark, Trivandrum",
-                "date": cols[0].text.strip(),
-                "title": title,
-                "company": company,
-                "link": job_link
-            })
-
+def fetch_technopark(pages=5):
+    jobs=[]
+    for _ in range(pages):
+        soup=safe_get("https://technopark.in/job-search")
+        if not soup: continue
+        scroll_page()
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        for card in soup.select('a[href^="/job-details"]'):
+            title_el = card.select_one("h4.bodyemphasis")
+            if not title_el: continue
+            title = title_el.get_text(strip=True)
+            link = "https://technopark.in" + card["href"]
+            if looks_relevant(title):
+                jobs.append({"title": title, "link": link})
     return jobs
 
-
-def get_cyberpark():
-    jobs = []
-    url = "https://www.ulcyberpark.com/jobs"
-
-    r = requests.get(url, headers=HEADERS, timeout=20)
-    soup = BeautifulSoup(r.text, "html.parser")
-
-    for a in soup.select("a"):
-        title = a.get_text(strip=True)
-        href = a.get("href", "")
-
-        if len(title) > 12 and "job" in title.lower():
-            company = "Cyberpark Company"
-
-            if href:
-                job_link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
-            else:
-                job_link = build_fallback_link(title, company)
-
-            jobs.append({
-                "park": "Cyberpark, Kozhikode",
-                "date": "",
-                "title": title,
-                "company": company,
-                "link": job_link
-            })
-
+def fetch_cyberpark():
+    jobs=[]
+    soup=safe_get("https://cyberparks.in/careers")
+    if not soup: return jobs
+    for a in soup.select("a[href*='/job/']"):
+        title = a.text.strip()
+        link=a["href"]
+        if looks_relevant(title) and is_valid_job_link(link):
+            jobs.append({"title":title,"link":link})
     return jobs
 
-
-def get_tidel_park():
-    jobs = []
-    url = "https://www.tidelpark.com/careers"
-
-    r = requests.get(url, headers=HEADERS, timeout=20)
-    soup = BeautifulSoup(r.text, "html.parser")
-
-    for a in soup.select("a"):
-        title = a.get_text(strip=True)
-        href = a.get("href", "")
-
-        if any(word in title.lower() for word in ["developer", "engineer", "analyst", "intern"]):
-            company = "TIDEL Park"
-
-            if href:
-                job_link = href if href.startswith("http") else "https://www.tidelpark.com" + href
-            else:
-                job_link = build_fallback_link(title, company)
-
-            jobs.append({
-                "park": "TIDEL Park, Chennai",
-                "date": "",
-                "title": title,
-                "company": company,
-                "link": job_link
-            })
-
+def fetch_smartcity():
+    jobs=[]
+    soup=BeautifulSoup(requests.get("https://smartcity-kochi.in/media-hub/job-openings/",timeout=15).text,"html.parser")
+    for article in soup.select("article"):
+        t=article.select_one("h2 a")
+        if not t: continue
+        title=t.text.strip()
+        link=t["href"]
+        if looks_relevant(title):
+            jobs.append({"title":title,"link":link})
     return jobs
 
-# ================== MAIN ==================
+def fetch_tidel():
+    jobs=[]
+    soup=safe_get("https://www.tidelpark.com/careers")
+    if not soup: return jobs
+    for a in soup.select("a[href*='career'], a[href*='job']"):
+        title=a.text.strip()
+        link=a["href"]
+        if looks_relevant(title) and is_valid_job_link(link):
+            jobs.append({"title":title,"link":link})
+    return jobs
 
-def main():
-    all_jobs = []
-    all_jobs += get_infopark()
-    all_jobs += get_technopark()
-    all_jobs += get_cyberpark()
-    all_jobs += get_tidel_park()
+def fetch_stpi():
+    jobs=[]
+    soup=safe_get("https://www.stpi.in/career")
+    if not soup: return jobs
+    for a in soup.select("a[href*='career'], a[href*='job']"):
+        title=a.text.strip()
+        link=a["href"]
+        if looks_relevant(title) and is_valid_job_link(link):
+            jobs.append({"title":title,"link":link})
+    return jobs
 
-    # Remove duplicates
-    unique = {(job["title"], job["company"], job["link"]): job for job in all_jobs}
-    all_jobs = list(unique.values())
+def fetch_indeed(pages=3):
+    jobs=[]
+    for p in range(pages):
+        soup=safe_get(f"https://www.indeed.co.in/jobs?q=python+data+analyst&start={p*10}")
+        if not soup: continue
+        for c in soup.select("a.tapItem"):
+            title=c.select_one("h2").text.strip()
+            link="https://www.indeed.co.in"+c["href"]
+            if looks_relevant(title):
+                jobs.append({"title":title,"link":link})
+    return jobs
 
-    with open(JOBS_FILE, "w", encoding="utf-8") as f:
-        json.dump(all_jobs, f, indent=2, ensure_ascii=False)
+# =========================================================
+# MAIN
+# =========================================================
 
-    print(f"Saved {len(all_jobs)} jobs on {datetime.now()}")
+print("\n🌀 Starting FULL job scraping engine...\n")
 
-# ================== AUTO PUSH ==================
+jobs=[]
+jobs+=fetch_infopark()
+jobs+=fetch_technopark()
+jobs+=fetch_cyberpark()
+jobs+=fetch_smartcity()
+jobs+=fetch_tidel()
+jobs+=fetch_stpi()
+jobs+=fetch_indeed()
 
-def auto_git_push():
-    subprocess.run(["git", "add", JOBS_FILE])
-    subprocess.run(["git", "commit", "-m", "Auto update jobs with working links"])
-    subprocess.run(["git", "push"])
+jobs=dedupe(jobs)
 
-# ================== RUN ==================
+pd.DataFrame(jobs).to_csv("jobs.csv",index=False)
 
-if __name__ == "__main__":
-    main()
-    auto_git_push()
+with open(JOBS_FILE,"w",encoding="utf-8") as f:
+    json.dump(jobs,f,indent=2)
+
+driver.quit()
+
+print(f"\n✅ Completed — {len(jobs)} jobs saved to jobs.csv & jobs.json\n")
+
+# =========================================================
+# AUTO PUSH
+# =========================================================
+
+subprocess.run(["git","add","jobs.csv",JOBS_FILE])
+subprocess.run(["git","commit","-m","Auto update jobs with verified application links"])
+subprocess.run(["git","push"])
