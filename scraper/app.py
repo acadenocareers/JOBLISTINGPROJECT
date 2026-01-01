@@ -31,12 +31,12 @@ def get_infopark():
         cols = row.find_all("td")
         if len(cols) >= 3:
             title_cell = cols[1]
-            link_tag = title_cell.find("a")
-
             title = title_cell.text.strip()
             company = cols[2].text.strip()
 
+            link_tag = title_cell.find("a")
             job_link = ""
+
             if link_tag and link_tag.get("href"):
                 job_link = "https://infopark.in" + link_tag["href"]
 
@@ -69,12 +69,12 @@ def get_technopark():
         cols = row.find_all("td")
         if len(cols) >= 3:
             title_cell = cols[1]
-            link_tag = title_cell.find("a")
-
             title = title_cell.text.strip()
             company = cols[2].text.strip()
 
+            link_tag = title_cell.find("a")
             job_link = ""
+
             if link_tag and link_tag.get("href"):
                 job_link = "https://technopark.in" + link_tag["href"]
 
@@ -106,8 +106,9 @@ def get_cyberpark():
         if len(title) > 12 and "job" in title.lower():
             company = "Cyberpark Company"
 
-            job_link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
-            if not href:
+            if href:
+                job_link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
+            else:
                 job_link = build_fallback_link(title, company)
 
             jobs.append({
@@ -135,8 +136,9 @@ def get_tidel_park():
         if any(word in title.lower() for word in ["developer", "engineer", "analyst", "intern"]):
             company = "TIDEL Park"
 
-            job_link = href if href.startswith("http") else "https://www.tidelpark.com" + href
-            if not href:
+            if href:
+                job_link = href if href.startswith("http") else "https://www.tidelpark.com" + href
+            else:
                 job_link = build_fallback_link(title, company)
 
             jobs.append({
@@ -171,7 +173,7 @@ def main():
 
 def auto_git_push():
     subprocess.run(["git", "add", JOBS_FILE])
-    subprocess.run(["git", "commit", "-m", "Auto update jobs"])
+    subprocess.run(["git", "commit", "-m", "Auto update jobs with working links"])
     subprocess.run(["git", "push"])
 
 # ================== RUN ==================
