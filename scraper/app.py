@@ -22,11 +22,19 @@ def get_infopark():
     for row in table.find_all("tr")[1:]:
         cols = row.find_all("td")
         if len(cols) >= 3:
+            title_cell = cols[1]
+            link_tag = title_cell.find("a")
+
+            job_link = ""
+            if link_tag and link_tag.get("href"):
+                job_link = "https://infopark.in" + link_tag["href"]
+
             jobs.append({
                 "park": "Infopark, Kochi",
                 "date": cols[0].text.strip(),
-                "title": cols[1].text.strip(),
-                "company": cols[2].text.strip()
+                "title": title_cell.text.strip(),
+                "company": cols[2].text.strip(),
+                "link": job_link
             })
     return jobs
 
@@ -44,11 +52,19 @@ def get_technopark():
     for row in table.find_all("tr")[1:]:
         cols = row.find_all("td")
         if len(cols) >= 3:
+            title_cell = cols[1]
+            link_tag = title_cell.find("a")
+
+            job_link = ""
+            if link_tag and link_tag.get("href"):
+                job_link = "https://technopark.in" + link_tag["href"]
+
             jobs.append({
                 "park": "Technopark, Trivandrum",
                 "date": cols[0].text.strip(),
-                "title": cols[1].text.strip(),
-                "company": cols[2].text.strip()
+                "title": title_cell.text.strip(),
+                "company": cols[2].text.strip(),
+                "link": job_link
             })
     return jobs
 
@@ -61,12 +77,14 @@ def get_cyberpark():
 
     for a in soup.select("a"):
         text = a.get_text(strip=True)
-        if len(text) > 12 and "job" in text.lower():
+        href = a.get("href", "")
+        if len(text) > 12 and "job" in text.lower() and href:
             jobs.append({
                 "park": "Cyberpark, Kozhikode",
                 "date": "",
                 "title": text,
-                "company": "Cyberpark Company"
+                "company": "Cyberpark Company",
+                "link": href if href.startswith("http") else "https://www.ulcyberpark.com" + href
             })
     return jobs
 
@@ -79,12 +97,14 @@ def get_tidel_park():
 
     for a in soup.select("a"):
         text = a.get_text(strip=True)
-        if any(word in text.lower() for word in ["developer", "engineer", "analyst", "intern"]):
+        href = a.get("href", "")
+        if any(word in text.lower() for word in ["developer", "engineer", "analyst", "intern"]) and href:
             jobs.append({
                 "park": "TIDEL Park, Chennai",
                 "date": "",
                 "title": text,
-                "company": "TIDEL Park"
+                "company": "TIDEL Park",
+                "link": href if href.startswith("http") else "https://www.tidelpark.com" + href
             })
     return jobs
 
