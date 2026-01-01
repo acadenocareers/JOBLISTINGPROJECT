@@ -3,9 +3,16 @@ import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 import subprocess
+from urllib.parse import quote_plus
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 JOBS_FILE = "jobs.json"
+
+# ================== HELPERS ==================
+
+def build_fallback_link(title, company):
+    query = quote_plus(f"{title} {company}")
+    return f"https://www.google.com/search?q={query}"
 
 # ================== SCRAPERS ==================
 
@@ -25,15 +32,21 @@ def get_infopark():
             title_cell = cols[1]
             link_tag = title_cell.find("a")
 
+            title = title_cell.text.strip()
+            company = cols[2].text.strip()
+
             job_link = ""
             if link_tag and link_tag.get("href"):
                 job_link = "https://infopark.in" + link_tag["href"]
 
+            if not job_link:
+                job_link = build_fallback_link(title, company)
+
             jobs.append({
                 "park": "Infopark, Kochi",
                 "date": cols[0].text.strip(),
-                "title": title_cell.text.strip(),
-                "company": cols[2].text.strip(),
+                "title": title,
+                "company": company,
                 "link": job_link
             })
     return jobs
@@ -55,15 +68,21 @@ def get_technopark():
             title_cell = cols[1]
             link_tag = title_cell.find("a")
 
+            title = title_cell.text.strip()
+            company = cols[2].text.strip()
+
             job_link = ""
             if link_tag and link_tag.get("href"):
                 job_link = "https://technopark.in" + link_tag["href"]
 
+            if not job_link:
+                job_link = build_fallback_link(title, company)
+
             jobs.append({
                 "park": "Technopark, Trivandrum",
                 "date": cols[0].text.strip(),
-                "title": title_cell.text.strip(),
-                "company": cols[2].text.strip(),
+                "title": title,
+                "company": company,
                 "link": job_link
             })
     return jobs
@@ -78,13 +97,22 @@ def get_cyberpark():
     for a in soup.select("a"):
         text = a.get_text(strip=True)
         href = a.get("href", "")
-        if len(text) > 12 and "job" in text.lower() and href:
+        if len(text) > 12 and "job" in text.lower():
+            title = text
+            company = "Cyberpark Company"
+
+            job_link = ""
+            if href:
+                job_link = href if href.startswith("http") else "https://www.ulcyberpark.com" + href
+            else:
+                job_link = build_fallback_link(title, company)
+
             jobs.append({
                 "park": "Cyberpark, Kozhikode",
                 "date": "",
-                "title": text,
-                "company": "Cyberpark Company",
-                "link": href if href.startswith("http") else "https://www.ulcyberpark.com" + href
+                "title": title,
+                "company": company,
+                "link": job_link
             })
     return jobs
 
@@ -98,13 +126,22 @@ def get_tidel_park():
     for a in soup.select("a"):
         text = a.get_text(strip=True)
         href = a.get("href", "")
-        if any(word in text.lower() for word in ["developer", "engineer", "analyst", "intern"]) and href:
+        if any(word in text.lower() for word in ["developer", "engineer", "analyst", "intern"]):
+            title = text
+            company = "TIDEL Park"
+
+            job_link = ""
+            if href:
+                job_link = href if href.startswith("http") else "https://www.tidelpark.com" + href
+            else:
+                job_link = build_fallback_link(title, company)
+
             jobs.append({
                 "park": "TIDEL Park, Chennai",
                 "date": "",
-                "title": text,
-                "company": "TIDEL Park",
-                "link": href if href.startswith("http") else "https://www.tidelpark.com" + href
+                "title": title,
+                "company": company,
+                "link": job_link
             })
     return jobs
 
