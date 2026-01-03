@@ -6,3 +6,5 @@ python-dotenv
 requests
 selenium
 pandas
+Flask
+flask-bcrypt
