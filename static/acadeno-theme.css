@@ -1,0 +1,77 @@
+:root {
+    --brand-navy: #072a48;
+    --brand-cyan: #00c0f1;
+    --brand-purple: #6e3bea;
+}
+
+/* 🌌 Background */
+body {
+    min-height: 100vh;
+    background:
+        linear-gradient(135deg,
+            #041c33 0%,
+            #072a48 25%,
+            #3c2fa3 55%,
+            #6e3bea 75%,
+            #00c0f1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    font-family: "Inter","Segoe UI",sans-serif;
+}
+
+/* 💎 Card */
+.acadeno-card {
+    max-width: 460px;
+    width: 100%;
+    background: rgba(255,255,255,0.97);
+    border-radius: 2rem;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.35);
+    padding: 2.5rem 2.8rem;
+}
+
+/* 🏷 Logo */
+.brand-logo {
+    width: 130px;
+    display: block;
+    margin: auto;
+}
+
+/* 🧠 Headings */
+.brand-name {
+    text-align: center;
+    font-weight: 700;
+    color: var(--brand-navy);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: .6rem;
+}
+
+h3 {
+    text-align: center;
+    color: var(--brand-purple);
+    font-weight: 800;
+}
+
+/* 🧾 Inputs */
+.form-control {
+    border-radius: .9rem;
+    padding: .75rem;
+}
+
+.form-control:focus {
+    border-color: var(--brand-cyan);
+    box-shadow: 0 0 0 .25rem rgba(0,192,241,.25);
+}
+
+/* 🚀 Buttons */
+.btn-brand {
+    background: linear-gradient(120deg, var(--brand-cyan), var(--brand-purple));
+    border: none;
+    border-radius: 999px;
+    padding: .75rem;
+    font-weight: 700;
+    color: #fff;
+    width: 100%;
+}
