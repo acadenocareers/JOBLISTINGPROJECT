@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Acadeno HR Dashboard</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+:root {
+    --brand-navy: #072a48;
+    --brand-cyan: #00c0f1;
+    --brand-purple: #6e3bea;
+}
+
+/* 🌌 Premium Brand Background */
+body {
+    min-height: 100vh;
+    background:
+        linear-gradient(135deg,
+            #041c33 0%,
+            #072a48 25%,
+            #3c2fa3 55%,
+            #6e3bea 75%,
+            #00c0f1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    font-family: "Inter","Segoe UI",sans-serif;
+}
+
+/* 💎 Main Card */
+.dashboard {
+    max-width: 700px;
+    width: 100%;
+    background: rgba(255,255,255,0.97);
+    border-radius: 2rem;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.35);
+    padding: 3rem 3.5rem;
+}
+
+/* 🏷 Logo */
+.brand-logo {
+    width: 130px;
+    display: block;
+    margin: auto;
+}
+
+.brand-name {
+    text-align: center;
+    font-weight: 700;
+    color: var(--brand-navy);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: .6rem;
+}
+
+/* 🎯 Headings */
+h3 {
+    text-align: center;
+    color: var(--brand-purple);
+    font-weight: 800;
+}
+
+/* 🧩 Section */
+.section {
+    margin-top: 2.5rem;
+    padding: 2rem;
+    border-radius: 1.2rem;
+    background: #f7f9fc;
+}
+
+.section h5 {
+    color: var(--brand-navy);
+    font-weight: 600;
+    text-align: center;
+}
+
+/* 🧾 Inputs */
+.form-control {
+    border-radius: .9rem;
+    padding: .75rem;
+}
+
+.form-control:focus {
+    border-color: var(--brand-cyan);
+    box-shadow: 0 0 0 .25rem rgba(0,192,241,.25);
+}
+
+/* 🚀 Buttons */
+.btn-brand {
+    background: linear-gradient(120deg, var(--brand-cyan), var(--brand-purple));
+    border: none;
+    border-radius: 999px;
+    padding: .75rem;
+    font-weight: 700;
+    color: #fff;
+}
+</style>
+</head>
+
+<body>
+
+<div class="dashboard">
+
+    <!-- Logo -->
+    <img src="{{ url_for('static', filename='logo.png') }}" class="brand-logo" alt="Acadeno Logo">
+
+    <div class="brand-name">Acadeno Technologies Private Limited </div>
+
+    <h3 class="mt-2">Admin Dashboard</h3>
+
+    <!-- 🎓 Centered Student Form -->
+    <div class="section">
+        <h5>🎓 Add Student</h5>
+        <form method="POST" action="/add-student">
+            <input class="form-control mt-3" name="student_name" placeholder="Student Name" required>
+            <input class="form-control mt-3" name="student_email" placeholder="Student Email" required>
+            <button class="btn btn-brand w-100 mt-4">Save Student</button>
+        </form>
+    </div>
+
+</div>
+
+</body>
+</html>
