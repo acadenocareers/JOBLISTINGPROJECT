@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from datetime import datetime
 
 # ---------- TRACKING ----------
-TRACK_URL = "https://script.google.com/macros/s/AKfycbyFWKm8yefHZMOOpcjz5xBpgZDLxum6H7n9QLBHB42W9D5ab1O6QFY6wwFen7YjZHdJcw/exec"
+TRACK_URL = "https://script.google.com/macros/s/AKfycbzOV2FsTY8Y31MxtpWWwXYnvSCW7spq91GRxxYwyzM-F1VLAGlRpGFYAJjHQt6ZLdYt/exec"
 
 def make_apply_link(student_email, job_title, job_link):
     params = {
