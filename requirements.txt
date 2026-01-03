@@ -9,3 +9,4 @@ pandas
 Flask
 flask-bcrypt
 gunicorn
+PyNaCl
