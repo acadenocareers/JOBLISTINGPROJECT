@@ -1,8 +1,20 @@
 import json, os, smtplib, random
 import pandas as pd
+import urllib.parse
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
+
+# ---------- TRACKING ----------
+TRACK_URL = "PASTE_YOUR_WEB_APP_URL_HERE"
+
+def make_apply_link(student_email, job_title, job_link):
+    params = {
+        "email": student_email,
+        "job": job_title,
+        "link": job_link
+    }
+    return TRACK_URL + "?" + urllib.parse.urlencode(params)
 
 # ---------- ENV VARIABLES ----------
 EMAIL_USER = os.getenv("EMAIL_USER")
@@ -36,7 +48,13 @@ for job in sampled_jobs:
         raw_link = "https://" + raw_link
 
     raw_link = raw_link.replace("infopark.inhttps://", "https://infopark.in/")
-    link = raw_link
+
+    # 🔁 Only this line changed
+    link = make_apply_link(
+        EMAIL_TO,
+        job.get("title",""),
+        raw_link
+    )
 
     cards += f"""
     <div style="border:1px solid #e6e9f0;border-radius:14px;padding:22px;
