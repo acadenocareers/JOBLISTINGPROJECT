@@ -1,26 +1,14 @@
 import json, os, smtplib, random
 import pandas as pd
-import urllib.parse
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 
-# ---------- TRACKING ----------
-TRACK_URL = "https://script.google.com/macros/s/AKfycbzOV2FsTY8Y31MxtpWWwXYnvSCW7spq91GRxxYwyzM-F1VLAGlRpGFYAJjHQt6ZLdYt/exec"
-
-def make_apply_link(student_email, job_title, job_link):
-    params = {
-        "email": student_email,
-        "job": job_title,
-        "link": job_link
-    }
-    return TRACK_URL + "?" + urllib.parse.urlencode(params)
-
 # ---------- ENV VARIABLES ----------
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO   = os.getenv("EMAIL_TO")
-USER_NAME  = os.getenv("USER_NAME", "Student")
+EMAIL_TO   = os.getenv("EMAIL_TO").split(",")
+USER_NAME  = os.getenv("USER_NAME").split(",")
 
 if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
     raise Exception("Missing email environment variables")
@@ -48,13 +36,7 @@ for job in sampled_jobs:
         raw_link = "https://" + raw_link
 
     raw_link = raw_link.replace("infopark.inhttps://", "https://infopark.in/")
-
-    # 🔁 Only this line changed
-    link = make_apply_link(
-        EMAIL_TO,
-        job.get("title",""),
-        raw_link
-    )
+    link = raw_link
 
     cards += f"""
     <div style="border:1px solid #e6e9f0;border-radius:14px;padding:22px;
@@ -128,16 +110,24 @@ Your future is not waiting to happen — it’s waiting for you to make it happe
 """
 
 # ---------- SEND EMAIL ----------
-msg = MIMEMultipart("alternative")
-msg["Subject"] = f"Today's Verified IT Openings — {today}"
-msg["From"] = EMAIL_USER
-msg["To"] = EMAIL_TO
-msg.attach(MIMEText(html, "html"))
-
 server = smtplib.SMTP("smtp.gmail.com", 587)
 server.starttls()
 server.login(EMAIL_USER, EMAIL_PASS)
-server.send_message(msg)
+
+for email, name in zip(EMAIL_TO, USER_NAME):
+
+    personalized_html = html.replace("{USER_NAME}", name.strip())
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"Today's Verified IT Openings — {today}"
+    msg["From"] = EMAIL_USER
+    msg["To"] = email.strip()
+    msg.attach(MIMEText(personalized_html, "html"))
+
+    server.send_message(msg)
+    print(f"Sent to {name.strip()} → {email.strip()}")
+
 server.quit()
+
 
 print("Email sent successfully")
