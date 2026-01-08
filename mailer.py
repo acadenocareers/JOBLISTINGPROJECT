@@ -7,11 +7,15 @@ from datetime import datetime
 # ---------- ENV VARIABLES ----------
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO   = os.getenv("EMAIL_TO").split(",")
-USER_NAME  = os.getenv("USER_NAME")
 
-if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
+EMAIL_TO   = os.getenv("EMAIL_TO", "").split(",")
+USER_NAME  = os.getenv("USER_NAME", "").split(",")
+
+if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO or not USER_NAME:
     raise Exception("Missing email environment variables")
+
+if len(EMAIL_TO) != len(USER_NAME):
+    raise Exception("EMAIL_TO and STUDENT_NAMES count mismatch")
 
 # ---------- LOAD RANDOM QUOTE ----------
 quotes_df = pd.read_excel("scraper/career_quotes_unique.xlsx")
@@ -85,11 +89,13 @@ html = f"""
 
 <div style="padding:32px">
 
-<p style="font-size:15px;">Dear <b>{USER_NAME}</b>,</p>
+<p style="font-size:15px;">Dear <b>{{USER_NAME}}</b>,</p>
 
 <p style="font-style:italic;color:#444;">“{quote}”</p>
 
-<p style="font-weight:600;margin-top:20px;">Here are today’s opportunities — <b>{today}</b></p>
+<p style="font-weight:600;margin-top:20px;">
+Here are today’s opportunities — <b>{today}</b>
+</p>
 
 {cards}
 
@@ -116,7 +122,7 @@ server.login(EMAIL_USER, EMAIL_PASS)
 
 for email, name in zip(EMAIL_TO, USER_NAME):
 
-    personalized_html = html.replace("{USER_NAME}", name.strip())
+    personalized_html = html.replace("{{USER_NAME}}", name.strip())
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"Today's Verified IT Openings — {today}"
@@ -129,5 +135,4 @@ for email, name in zip(EMAIL_TO, USER_NAME):
 
 server.quit()
 
-
-print("Email sent successfully")
+print("✅ All emails sent successfully")
