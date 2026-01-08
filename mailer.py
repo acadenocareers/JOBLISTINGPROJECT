@@ -8,7 +8,7 @@ from datetime import datetime
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO   = os.getenv("EMAIL_TO").split(",")
-USER_NAME  = os.getenv("USER_NAME").split(",")
+USER_NAME  = os.getenv("USER_NAME")
 
 if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO:
     raise Exception("Missing email environment variables")
