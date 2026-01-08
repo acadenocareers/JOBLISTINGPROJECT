@@ -120,7 +120,7 @@ server.starttls()
 server.login(EMAIL_USER, EMAIL_PASS)
 
 for email, name in zip(EMAIL_TO, USER_NAME):
-    personalized_html = html.replace("{{USER_NAME}}", name)
+    personalized_html = html.replace("{USER_NAME}", name)
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"Today's Verified IT Openings — {today}"
