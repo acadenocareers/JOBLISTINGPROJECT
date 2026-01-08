@@ -8,14 +8,14 @@ from datetime import datetime
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-EMAIL_TO   = os.getenv("EMAIL_TO", "").split(",")
-USER_NAME  = os.getenv("USER_NAME", "").split(",")
+EMAIL_TO  = [e.strip() for e in os.getenv("EMAIL_TO", "").split(",") if e.strip()]
+USER_NAME = [n.strip() for n in os.getenv("USER_NAME", "").split(",") if n.strip()]
 
 if not EMAIL_USER or not EMAIL_PASS or not EMAIL_TO or not USER_NAME:
     raise Exception("Missing email environment variables")
 
 if len(EMAIL_TO) != len(USER_NAME):
-    raise Exception("EMAIL_TO and STUDENT_NAMES count mismatch")
+    raise Exception("EMAIL_TO and USER_NAME count mismatch")
 
 # ---------- LOAD RANDOM QUOTE ----------
 quotes_df = pd.read_excel("scraper/career_quotes_unique.xlsx")
@@ -33,7 +33,6 @@ cards = ""
 sampled_jobs = random.sample(jobs, min(20, len(jobs)))
 
 for job in sampled_jobs:
-
     raw_link = job.get("link", "").strip()
 
     if not raw_link.startswith("http"):
@@ -121,18 +120,16 @@ server.starttls()
 server.login(EMAIL_USER, EMAIL_PASS)
 
 for email, name in zip(EMAIL_TO, USER_NAME):
-
-    personalized_html = html.replace("{{USER_NAME}}", name.strip())
+    personalized_html = html.replace("{{USER_NAME}}", name)
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"Today's Verified IT Openings — {today}"
     msg["From"] = EMAIL_USER
-    msg["To"] = email.strip()
+    msg["To"] = email
     msg.attach(MIMEText(personalized_html, "html"))
 
     server.send_message(msg)
-    print(f"Sent to {name.strip()} → {email.strip()}")
+    print(f"Sent to {name} → {email}")
 
 server.quit()
-
 print("✅ All emails sent successfully")
